@@ -4,7 +4,7 @@
 	import TicketDetail from '$lib/component/TicketDetail.svelte';
 	import TicketingForm from '$lib/component/TicketingForm.svelte';
 	import FeedbackForm from '$lib/component/FeedbackForm.svelte';
-	import Notification from '$lib/component/Notification.svelte'; // Import Notification
+	import Notification from '$lib/component/Notification.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { isAuthenticated, userRole, userEmail } from '$lib/services/firebaseConfig';
@@ -14,8 +14,11 @@
 	let tickets = [];
 	let feedbacks = [];
 	let employees = [];
+<<<<<<< Updated upstream
 	let selectedTicket = null;
 	let showTicketModal = false;
+=======
+>>>>>>> Stashed changes
 	let showFeedbackModal = false;
 	let showDetailModal = false;
 	let authReady = false;
@@ -56,7 +59,7 @@
 					problem_type: t.problem_type,
 					app_type: t.app_type,
 					status: t.status,
-					pic: t.pic
+					target_department: t.target_department
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);
@@ -89,18 +92,38 @@
 		}
 	}
 
-	function openTicketModal() {
-		showTicketModal = true;
+	let ticketUpdates = [];
+
+	async function fetchTicketUpdates() {
+		try {
+			const res = await axios.get('https://directus.eltamaprimaindo.com/items/TicketUpdate', {
+				headers: {
+					Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz`
+				}
+			});
+			ticketUpdates = res.data.data;
+			ticketUpdates = ticketUpdates.map((update) => ({
+				id: `TU00${update.id}`,
+				rawId: update.id,
+				ticketId: update.ticket_id,
+				date: update.date,
+				status: update.status,
+				pic: update.pic,
+				description: update.description,
+				attachment: update.attachment || ''
+			}));
+		} catch (e) {
+			console.error('Gagal mengambil TicketUpdates:', e);
+		}
 	}
-	function closeTicketModal() {
-		showTicketModal = false;
-	}
+
 	function openFeedbackModal() {
 		showFeedbackModal = true;
 	}
 	function closeFeedbackModal() {
 		showFeedbackModal = false;
 	}
+<<<<<<< Updated upstream
 	function openDetailModal(ticket) {
 		selectedTicket = ticket;
 		showDetailModal = true;
@@ -109,6 +132,35 @@
 		showDetailModal = false;
 		selectedTicket = null;
 	}
+=======
+
+	// Modal untuk detail feedback
+	let showImageModalFeedback = false;
+	let imageUrlFeedback = '';
+	function handleOpenImageFeedback(e) {
+		imageUrlFeedback = e.detail.url;
+		showImageModalFeedback = true;
+	}
+	function closeImageFeedback() {
+		showImageModalFeedback = false;
+		imageUrlFeedback = '';
+	}
+
+	// Modal untuk detail feedback
+	let showDetailModalFeedback = false;
+	let detailTextFeedback = '';
+
+	function handleOpenDetailFeedback(e) {
+		detailTextFeedback = e.detail.text;
+		showDetailModalFeedback = true;
+	}
+	function closeDetailModalFeedback() {
+		showDetailModalFeedback = false;
+		detailTextFeedback = '';
+	}
+
+
+>>>>>>> Stashed changes
 
 	let unsubAuth, unsubRole;
 
@@ -128,6 +180,7 @@
 			if (authReady && roleReady && isLoggedIn && currentRole === 'user') {
 				fetchTickets();
 				fetchFeedback();
+				fetchTicketUpdates(); // Tambahkan ini
 				fetchEmployees().then((data) => {
 					// Tambahkan ini
 					employees = data || [];
@@ -243,7 +296,14 @@
 					showActions={true}
 					showNames={false}
 					showDivisions={false}
+<<<<<<< Updated upstream
 					on:detail={(e) => openDetailModal(e.detail.ticket)}
+=======
+					showPriority={false}
+					showDate={false}
+					showDepartments={true}
+					{ticketUpdates}
+>>>>>>> Stashed changes
 				/>
 				{/if}
 			</div>
@@ -287,25 +347,6 @@
 			</div>
 		</div>
 
-		<!-- Modal TicketingForm -->
-		{#if showTicketModal}
-			<div
-				class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
-			>
-				<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
-					<button
-						class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
-						on:click={closeTicketModal}>&times;</button
-					>
-					<TicketingForm
-						onClose={closeTicketModal}
-						on:submitted={handleTicketSubmitted}
-						employee={myEmployee}
-					/>
-				</div>
-			</div>
-		{/if}
-
 		<!-- Modal FeedbackForm -->
 		{#if showFeedbackModal}
 			<div
@@ -327,6 +368,41 @@
 	</div>
 {/if}
 
+<<<<<<< Updated upstream
+=======
+{#if showDetailModalFeedback}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+		<div
+			class="bg-white rounded-lg shadow-lg p-6 relative w-[90vw] max-w-4xl overflow-y-scroll flex flex-col items-center animate-fade-in-up"
+			style="max-height: 50vh"
+		>
+			<button
+				class="absolute top-4 right-6 text-gray-500 hover:text-red-600 text-3xl font-bold"
+				on:click={closeDetailModalFeedback}>&times;</button
+			>
+			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Feedback</h2>
+			<p class="text-gray-800 whitespace-pre-line text-justify">{detailTextFeedback}</p>
+		</div>
+	</div>
+{/if}
+
+{#if showImageModalFeedback}
+	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
+		<div
+			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
+		>
+			<button
+				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				on:click={closeImageFeedback}>&times;</button
+			>
+			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Feedback</h3>
+			<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
+		</div>
+	</div>
+{/if}
+
+
+>>>>>>> Stashed changes
 <style>
 	@keyframes fade-in {
 		from {

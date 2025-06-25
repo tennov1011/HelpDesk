@@ -8,12 +8,8 @@
 	export let showEdit = true;
 	export let statusEditable = true;
 
-	let showImageModal = false;
-	let modalImageUrl = '';
 	let isDeleting = false;
 	let notification = { show: false, type: '', message: '' };
-	let showDetailModal = false;
-	let detailText = '';
 	let currentPage = 1;
 	const rowsPerPage = 5;
 

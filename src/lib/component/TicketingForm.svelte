@@ -56,7 +56,7 @@
 		'Panel surya atau sensor lapangan tertutup debu atau lumpur',
 		'Lainnya'
 	];
-	const priorityOptions = ['Tinggi', 'Sedang', 'Darurat', 'Rendah'];
+	const priorityOptions = ['Rendah', 'Sedang', 'Tinggi', 'Darurat'];
 
 	const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL;
 	const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN;
@@ -84,6 +84,9 @@
 	const handleSubmit = async (event) => {
 		event.preventDefault();
 		isLoading = true;
+		if (!priority) {
+			priority = 'Rendah';
+		}
 		let photo_ticketIds = null;
 		if (photo_ticket && photo_ticket.length > 0) {
 			const formData = new FormData();

@@ -29,6 +29,7 @@
         }
     }
 
+<<<<<<< Updated upstream
     async function markAllAsRead() {
         if (!userEmail) return;
         try {
@@ -50,6 +51,9 @@
             // handle error
         }
     }
+=======
+	const RESET_INTERVAL = 2 * 60 * 60 * 1000;
+>>>>>>> Stashed changes
 
     function handleClickOutside(event) {
         if (showNotifDropdown && notifDropdownEl && !notifDropdownEl.contains(event.target)) {
@@ -66,12 +70,68 @@
         };
     });
 
+<<<<<<< Updated upstream
     // Optional: refresh notifikasi setiap 30 detik
     let interval;
     onMount(() => {
         interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     });
+=======
+	// Reaktif jika userEmail berubah
+	$: userEmail, loadNotifications();
+
+	async function handleBellClick() {
+		await loadNotifications();
+		showNotifDropdown = !showNotifDropdown;
+		if (showNotifDropdown && unreadCount > 0) {
+			try {
+				const unreadIds = notifications
+					.filter((n) => n.read === false || n.read === 'false' || n.read === 0)
+					.map((n) => n.id);
+				if (unreadIds.length > 0) {
+					await Promise.all(
+						unreadIds.map((id) =>
+							axios.patch(
+								`${DIRECTUS_URL}/items/Notifications/${id}`,
+								{ read: true },
+								{ headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` } }
+							)
+						)
+					);
+				}
+				await loadNotifications();
+			} catch (e) {}
+		}
+		// Simpan waktu baca terakhir
+		if (showNotifDropdown) {
+			const lastReadKey = `notif_last_read_${userEmail}`;
+			localStorage.setItem(lastReadKey, Date.now().toString());
+		}
+	}
+
+	function getVisibleNotifications() {
+		if (!userEmail) return [];
+		const lastReadKey = `notif_last_read_${userEmail}`;
+		const lastRead = localStorage.getItem(lastReadKey);
+		const now = Date.now();
+
+		// Jika belum pernah baca, tampilkan semua
+		if (!lastRead) return notifications;
+
+		// Jika sudah lebih dari 4 jam, sembunyikan semua notifikasi yang sudah dibaca sebelum waktu reset
+		if (now - Number(lastRead) > RESET_INTERVAL) {
+			return notifications.filter(
+				(n) =>
+					n.read === false ||
+					n.read === 'false' ||
+					n.read === 0 ||
+					new Date(n.date).getTime() > Number(lastRead)
+			);
+		}
+		return notifications;
+	}
+>>>>>>> Stashed changes
 </script>
 
 <div class="relative">
