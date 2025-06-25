@@ -2,7 +2,6 @@
 	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 	import axios from 'axios';
 	import { writable } from 'svelte/store';
-	import { userEmail, userDepartment } from '$lib/services/firebaseConfig';
 
 	const dispatch = createEventDispatcher();
 
@@ -25,6 +24,7 @@
 	let label = '';
 	let location = '';
 	let problem_type = '';
+	let date_created = new Date().toISOString();
 	export let employee = null;
 
 	const departmentOptions = [
@@ -123,7 +123,8 @@
 			label,
 			location,
 			problem_type,
-			app_type
+			app_type,
+			date_created
 		};
 
 		console.log('Data yang akan dikirim:', data);
@@ -134,6 +135,11 @@
 		}
 		if (!data.target_department) {
 			showNotification('error', 'Pilih Departemen harus diisi');
+			isLoading = false;
+			return;
+		}
+		if (!ticket || ticket.trim() === '') {
+			showNotification('error', 'Detail Masalah harus diisi');
 			isLoading = false;
 			return;
 		}
@@ -160,6 +166,7 @@
 			problem_type = [];
 			contactPhone = '';
 			photo_ticket = [];
+			date_created = new Date().toISOString();
 			setTimeout(() => {
 				dispatch('submitted');
 			}, 1000);
@@ -355,7 +362,7 @@
 				</div>
 			{:else if category === 'Lainnya'}
 				<div>
-					<label>Deskripsi Kategori Lainnya</label>
+					<label>Judul Deskripsi</label>
 					<input
 						type="text"
 						class="w-full px-4 py-2 border rounded-lg"

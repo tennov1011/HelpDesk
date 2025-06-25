@@ -24,47 +24,26 @@
 
 	const dispatch = createEventDispatcher();
 
-	function openImageModal(fileId) {
-		if (fileId?.startsWith && fileId.startsWith('http')) {
-			modalImageUrl = fileId;
-		} else {
-			modalImageUrl = `${DIRECTUS_URL}/assets/${fileId}`;
-		}
-		showImageModal = true;
-	}
-	function closeImageModal() {
-		showImageModal = false;
-		modalImageUrl = '';
-	}
-	function handleKeydown(event) {
-		if (event.key === 'Escape' && showImageModal) {
-			closeImageModal();
-		} else if (event.key === 'Escape' && showDetailModal) {
-			closeDetailModal();
-		}
+	function openImageModal(url) {
+		dispatch('openImage', { url });
 	}
 	function openDetailModal(text) {
-		detailText = text;
-		showDetailModal = true;
-	}
-	function closeDetailModal() {
-		showDetailModal = false;
-		detailText = '';
+		dispatch('openDetailFeedback', { text });
 	}
 
-async function deleteFeedback(id) {
-    if (!confirm('Yakin ingin menghapus feedback ini?')) return;
-    try {
-        await axios.delete(`${DIRECTUS_URL}/items/FeedbackForm/${id}`, {
-            headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }
-        });
-        alert('Feedback berhasil dihapus.');
-        dispatch('deleted'); // Beritahu parent untuk fetch ulang
-        closeDetailModal && closeDetailModal(); // Tutup modal jika ada
-    } catch (e) {
-        alert('Gagal menghapus feedback.');
-    }
-}
+	async function deleteFeedback(id) {
+		if (!confirm('Yakin ingin menghapus feedback ini?')) return;
+		try {
+			await axios.delete(`${DIRECTUS_URL}/items/FeedbackForm/${id}`, {
+				headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }
+			});
+			alert('Feedback berhasil dihapus.');
+			dispatch('deleted'); // Beritahu parent untuk fetch ulang
+			closeDetailModal && closeDetailModal(); // Tutup modal jika ada
+		} catch (e) {
+			alert('Gagal menghapus feedback.');
+		}
+	}
 
 	async function markAsRead(id) {
 		try {
@@ -100,6 +79,15 @@ async function deleteFeedback(id) {
 	}
 	function prevPage() {
 		if (currentPage > 1) currentPage -= 1;
+	}
+	function formatDate(dateStr) {
+		if (!dateStr) return '';
+		const d = new Date(dateStr);
+		if (isNaN(d)) return dateStr;
+		const day = String(d.getDate()).padStart(2, '0');
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const year = d.getFullYear();
+		return `${day}/${month}/${year}`;
 	}
 </script>
 
@@ -150,13 +138,13 @@ async function deleteFeedback(id) {
 					{#if showDivision}
 						<td class="text-center p-3">{fb.division}</td>
 					{/if}
-					<td class="text-center p-3">{fb.date}</td>
+					<td class="text-center p-3">{formatDate(fb.date)}</td>
 					<td class="text-center p-3">
 						<div class="flex items-center justify-center">
 							{#if fb.photo_feedback}
 								<div class="bg-blue-100 border border-blue-200 rounded px-2 py-1">
 									<button
-										on:click={() => openImageModal(fb.photo_feedback)}
+										on:click={() => openImageModal(`https://directus.eltamaprimaindo.com/assets/${fb.photo_feedback}`)}
 										class="text-blue-600 hover:text-blue-800 font-bold"
 									>
 										Lihat File
@@ -238,42 +226,6 @@ async function deleteFeedback(id) {
 		</button>
 	</div>
 </div>
-
-{#if showImageModal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-		<div
-			class="bg-white rounded-lg shadow-lg p-6 relative w-[90vw] max-w-6xl flex flex-col items-center"
-			style="min-height: 70vh;"
-		>
-			<button
-				class="absolute top-4 right-6 text-gray-500 hover:text-red-600 text-3xl font-bold"
-				on:click={closeImageModal}>&times;</button
-			>
-			<img
-				src={modalImageUrl}
-				alt="Feedback Image"
-				class="max-h-[85vh] max-w-full rounded shadow-lg object-contain"
-				style="display: block;"
-				on:error={() => (modalImageUrl = '')}
-			/>
-		</div>
-	</div>
-{/if}
-{#if showDetailModal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center">
-		<div
-			class="bg-white rounded-lg shadow-lg p-6 relative w-[90vw] max-w-4xl overflow-y-scroll flex flex-col items-center animate-fade-in-up"
-			style="max-height: 50vh"
-		>
-			<button
-				class="absolute top-4 right-6 text-gray-500 hover:text-red-600 text-3xl font-bold"
-				on:click={closeDetailModal}>&times;</button
-			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Feedback</h2>
-			<p class="text-gray-800 whitespace-pre-line text-justify">{detailText}</p>
-		</div>
-	</div>
-{/if}
 
 <style>
 	@keyframes fade-in-up {

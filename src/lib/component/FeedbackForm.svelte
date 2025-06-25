@@ -7,6 +7,7 @@
 	export let employee = null;
 
 	let feedback = '';
+	let date_created = new Date().toISOString();
 	let rating = '1';
 	let url = '';
 	let photo_feedback = [];
@@ -66,7 +67,8 @@
 			feedback,
 			rating,
 			url,
-			photo_feedback: photo_feedback_id
+			photo_feedback: photo_feedback_id,
+			date_created,
 		};
 
 		console.log('Payload yang dikirim:', data); // Tambahkan baris ini
@@ -82,6 +84,7 @@
 			rating = '1';
 			url = '';
 			photo_feedback = [];
+			date_created = new Date().toISOString();
 			// Tambahkan redirect ke dashboard setelah submit sukses
 			setTimeout(() => {
 				dispatch('submitted');
