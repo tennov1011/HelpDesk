@@ -422,9 +422,9 @@
 				/>
 			</div>
 			<div>
-				<label class="block font-semibold mb-2">Pilih Departemen</label>
+				<label class="block font-semibold mb-2">Departemen Tujuan</label>
 				<select bind:value={target_department} class="w-full px-4 py-2 border rounded-lg">
-					<option value="" disabled>Pilih Departemen</option>
+					<option value="" disabled>Pilih Departemen Tujuan</option>
 					{#each departmentOptions as opt}
 						<option value={opt}>{opt}</option>
 					{/each}
