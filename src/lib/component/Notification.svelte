@@ -57,6 +57,56 @@
 		}
 	}
 
+	async function deleteAllNotifications() {
+		if (!userEmail) return;
+		try {
+			// Ambil semua notifikasi untuk user ini
+			const userNotifications = notifications.filter(n => n.email === userEmail);
+			if (userNotifications.length === 0) return;
+
+			// Hapus semua notifikasi user dari database
+			await Promise.all(
+				userNotifications.map((notif) =>
+					axios.delete(
+						`https://directus.eltamaprimaindo.com/items/Notifications/${notif.id}`,
+						{ headers: { Authorization: `Bearer ${token}` } }
+					)
+				)
+			);
+			
+			// Reset local state
+			notifications = [];
+			unreadCount = 0;
+			console.log(`Deleted ${userNotifications.length} notifications for user: ${userEmail}`);
+		} catch (e) {
+			console.error('Error deleting notifications:', e);
+		}
+	}
+
+	function scheduleNotificationReset() {
+		if (!userEmail) return;
+		
+		const resetKey = `notif_reset_scheduled_${userEmail}`;
+		const existingTimer = localStorage.getItem(resetKey);
+		
+		// Jika sudah ada timer yang dijadwalkan dalam 2 jam terakhir, skip
+		if (existingTimer && Date.now() - Number(existingTimer) < RESET_INTERVAL) {
+			return;
+		}
+		
+		// Simpan timestamp kapan timer dijadwalkan
+		localStorage.setItem(resetKey, Date.now().toString());
+		
+		// Set timeout untuk 2 jam (2 * 60 * 60 * 1000 ms)
+		setTimeout(async () => {
+			console.log('Auto-deleting notifications after 2 hours for user:', userEmail);
+			await deleteAllNotifications();
+			localStorage.removeItem(resetKey);
+		}, RESET_INTERVAL);
+		
+		console.log('Notification reset scheduled for 2 hours from now');
+	}
+
 	const RESET_INTERVAL = 2 * 60 * 60 * 1000;
 
 	function handleClickOutside(event) {
@@ -106,6 +156,7 @@
 			showNotifDropdown = !showNotifDropdown;
 			if (!showNotifDropdown) return;
 			markAllAsRead();
+			scheduleNotificationReset(); // Jadwalkan penghapusan otomatis setelah 2 jam
 		}}
 		aria-label="Notifikasi"
 		class="relative"
