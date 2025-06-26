@@ -28,7 +28,7 @@
 			tickets = res.data.data
 				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((t) => ({
-					id: `T00${t.id}`,
+					id: `TK${t.id}`,
 					rawId: t.id,
 					date: t.date_created,
 					name: t.name,
@@ -38,6 +38,7 @@
 					category: t.category,
 					photo_ticket: t.photo_ticket,
 					ticket: t.ticket,
+					desc : t.desc,
 					device: t.device,
 					url_name_app: t.url_name_app,
 					priority: t.priority,
@@ -65,7 +66,7 @@
 			feedbacks = res.data.data
 				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((fb, idx) => ({
-					id: `#F${String(fb.id).padStart(3, '0')}`,
+					id: `F${String(fb.id).padStart(3, '0')}`,
 					rawId: fb.id, // Tambahkan rawId untuk referensi
 					date: fb.date_created ? fb.date_created.slice(0, 10) : '',
 					text: fb.feedback,
@@ -129,6 +130,99 @@
 		'tickets:',
 		tickets.map((t) => ({ id: t.id, department: t.department }))
 	);
+
+	// Delete Ticket
+	async function deleteTicket() {
+		if (!selectedTicket) return;
+		if (!confirm('Yakin ingin menghapus tiket ini?')) return;
+		try {
+			await axios.delete(
+				`https://directus.eltamaprimaindo.com/items/TicketForm/${selectedTicket.rawId}`,
+				{
+					headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` }
+				}
+			);
+			alert('Ticket berhasil dihapus');
+			closeDetailModalTicket();
+			fetchTickets();
+		} catch (e) {
+			alert('Gagal menghapus tiket');
+		}
+	}
+
+	// Modal Imgae ticket
+	let showImageModalTicket = false;
+	let imageUrlTicket = '';
+	function handleOpenImageTicket(e) {
+		imageUrlTicket = e.detail.url;
+		showImageModalTicket = true;
+	}
+	function closeImageTicket() {
+		showImageModalTicket = false;
+		imageUrlTicket = '';
+	}
+
+	// Modal Image Feedback
+	let showImageModalFeedback = false;
+	let imageUrlFeedback = '';
+	function handleOpenImageFeedback(e) {
+		imageUrlFeedback = e.detail.url;
+		showImageModalFeedback = true;
+	}
+	function closeImageFeedback() {
+		showImageModalFeedback = false;
+		imageUrlFeedback = '';
+	}
+
+	// Modal Detail Feedback
+	let showDetailModalFeedback = false;
+	let detailTextFeedback = '';
+
+	function handleOpenDetailFeedback(e) {
+		console.log('openDetailFeedback event:', e.detail); // Debug log
+		detailTextFeedback = e.detail.text;
+		showDetailModalFeedback = true;
+	}
+	function closeDetailModalFeedback() {
+		showDetailModalFeedback = false;
+		detailTextFeedback = '';
+	}
+
+	// Modal Detail Ticket
+	let showDetailModalTicket = false;
+	let selectedTicket = null;
+	let detailFieldsTicket = [];
+	let selectedPic = '';
+
+	function handleOpenDetailTicket(e) {
+		selectedTicket = e.detail.ticket;
+		detailFieldsTicket = e.detail.detailFields;
+		selectedPic = e.detail.ticket.pic || '';
+		showDetailModalTicket = true;
+	}
+	function closeDetailModalTicket() {
+		showDetailModalTicket = false;
+		selectedTicket = null;
+		detailFieldsTicket = [];
+		selectedPic = '';
+	}
+
+	// Lihat Detail Informasi Ticket
+	let showTicketDetailModal = false;
+	let ticketDetailText = '';
+	function openTicketDetailModal(text) {
+		ticketDetailText = text;
+		showTicketDetailModal = true;
+	}
+	function closeTicketDetailModal() {
+		showTicketDetailModal = false;
+		ticketDetailText = '';
+	}
+
+	function handleTicketUpdated(e) {
+		const updated = e.detail.updatedTicket;
+		tickets = tickets.map((t) => (t.rawId === updated.rawId ? { ...t, ...updated } : t));
+	}
 </script>
 
 <svelte:head>
@@ -149,22 +243,23 @@
 		<TicketStats tickets={filteredTickets} {feedbacks} />
 
 		<!-- Tickets Table -->
-		<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">List Tiket</h2>
 		<div class="bg-white p-4 rounded-xl shadow-lg mb-6 animate-fade-in-up">
+			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">List Tiket</h2>
 			<TicketList
 				tickets={filteredTickets}
 				isAdmin={true}
 				on:deleted={fetchTickets}
-				on:openImage={handleOpenImageTicket}
-				on:openDetailTicket={handleOpenDetailTicket}
+				on:openDetail={handleOpenDetailTicket}
+				on:ticketUpdated={handleTicketUpdated}
 			/>
+
 			<!-- Feedback Table -->
-			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">List Feedback</h2>
+			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono mt-4">List Feedback</h2>
 			<FeedbackList
 				{feedbacks}
 				on:deleted={fetchFeedback}
 				statusEditable={true}
-				on:openImage={handleOpenImageFeedback}
+				on:openImageFeedback={handleOpenImageFeedback}
 				on:openDetailFeedback={handleOpenDetailFeedback}
 			/>
 		</div>
@@ -196,7 +291,7 @@
 				on:click={closeImageFeedback}>&times;</button
 			>
 			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Feedback</h3>
-			<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
+			<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[70vh] max-w-full rounded border" />
 		</div>
 	</div>
 {/if}
@@ -214,11 +309,91 @@
 			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Feedback</h2>
 			<p class="text-gray-800 whitespace-pre-line text-justify">{detailTextFeedback}</p>
 		</div>
+	</div>
+{/if}
 
-		<!-- Feedback Table -->
-		<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">List Feedback</h2>
-		<div class="bg-white p-4 rounded-xl shadow-lg animate-fade-in-up">
-			<FeedbackList {feedbacks} on:deleted={fetchFeedback} statusEditable={true} />
+{#if showDetailModalTicket && selectedTicket}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+		<div
+			class="bg-gradient-to-br from-blue-50 via-white to-blue-100 border border-blue-200 rounded-2xl shadow-4xl p-8 max-w-6xl w-full h-[60vh] overflow-y-auto relative animate-fade-in-up"
+		>
+			<button
+				class="absolute top-3 right-5 text-2xl text-gray-400 hover:text-red-500 transition"
+				on:click={closeDetailModalTicket}>&times;</button
+			>
+			<h2 class="text-xl font-extrabold mb-6 text-blue-700 drop-shadow gap-5">
+				Detail Tiket <span
+					class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-base font-semibold ml-2"
+					>{selectedTicket?.id}</span
+				>
+			</h2>
+			<table class="w-full text-left mb-4 border-separate border-spacing-y-1">
+				<tbody class="space-y-2">
+					{#each detailFieldsTicket as [key, value], idx}
+						<tr class={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+							<td class="font-semibold pr-4 py-2 capitalize text-blue-900 w-1/3">
+								{key.replace(/_/g, ' ')}
+							</td>
+							<td class="py-2 text-gray-700 break-words">
+								{#if key.toLowerCase() === 'detail'}
+									<button
+										class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
+										type="button"
+										on:click={() => openTicketDetailModal(value)}
+									>
+										Lihat Detail
+									</button>
+								{:else if key.toLowerCase() === 'lampiran'}
+									{#if selectedTicket.photo_ticket}
+										<button
+											class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
+											type="button"
+											on:click={() => {
+												imageUrlTicket = `https://directus.eltamaprimaindo.com/assets/${selectedTicket.photo_ticket}`;
+												showImageModalTicket = true;
+											}}
+										>
+											Lihat File
+										</button>
+									{:else}
+										<span class="text-gray-400 italic">Tidak Tersedia</span>
+									{/if}
+								{:else if Array.isArray(value)}
+									{value.join(', ')}
+								{:else}
+									{value}
+								{/if}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+			{#if currentRole === 'admin'}
+				<div class="mt-6 bg-red-50 rounded-lg p-4 border border-red-100 flex justify-center">
+					<button
+						class="flex-1 bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition font-semibold shadow"
+						on:click={deleteTicket}
+					>
+						Hapus Tiket
+					</button>
+				</div>
+			{/if}
+		</div>
+	</div>
+{/if}
+
+{#if showTicketDetailModal}
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-70">
+		<div
+			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[60vh]"
+			style="max-height: 80vh; overflow-y: auto"
+		>
+			<button
+				class="absolute top-3 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				on:click={closeTicketDetailModal}>&times;</button
+			>
+			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Informasi Tiket</h2>
+			<p class="text-gray-800 whitespace-pre-line text-justify">{ticketDetailText}</p>
 		</div>
 	</div>
 {/if}

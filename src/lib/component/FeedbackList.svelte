@@ -23,12 +23,15 @@
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
 
 	const dispatch = createEventDispatcher();
+	let showImageModal = false;
+	let showDetailModal = false;
 
-	function openImageModal(url) {
-		dispatch('openImage', { url });
-	}
-	function openDetailModal(text) {
-		dispatch('openDetailFeedback', { text });
+	function handleKeydown(event) {
+		if (event.key === 'Escape' && showImageModal) {
+			closeImageModal();
+		} else if (event.key === 'Escape' && showDetailModal) {
+			closeDetailModal();
+		}
 	}
 
 	async function deleteFeedback(id) {
@@ -80,15 +83,6 @@
 	function prevPage() {
 		if (currentPage > 1) currentPage -= 1;
 	}
-	function formatDate(dateStr) {
-		if (!dateStr) return '';
-		const d = new Date(dateStr);
-		if (isNaN(d)) return dateStr;
-		const day = String(d.getDate()).padStart(2, '0');
-		const month = String(d.getMonth() + 1).padStart(2, '0');
-		const year = d.getFullYear();
-		return `${day}/${month}/${year}`;
-	}
 </script>
 
 {#if notification.show}
@@ -138,13 +132,18 @@
 					{#if showDivision}
 						<td class="text-center p-3">{fb.division}</td>
 					{/if}
-					<td class="text-center p-3">{formatDate(fb.date)}</td>
+					<td class="text-center p-3">{fb.date}</td>
 					<td class="text-center p-3">
 						<div class="flex items-center justify-center">
 							{#if fb.photo_feedback}
 								<div class="bg-blue-100 border border-blue-200 rounded px-2 py-1">
 									<button
-										on:click={() => openImageModal(`https://directus.eltamaprimaindo.com/assets/${fb.photo_feedback}`)}
+										on:click={() =>
+											dispatch('openImageFeedback', {
+												url: fb.photo_feedback.startsWith('http')
+													? fb.photo_feedback
+													: `${DIRECTUS_URL}/assets/${fb.photo_feedback}`
+											})}
 										class="text-blue-600 hover:text-blue-800 font-bold"
 									>
 										Lihat File
@@ -179,7 +178,7 @@
 					<td class="text-center">
 						<button
 							class="bg-blue-100 border border-blue-200 rounded px-2 py-1 text-blue-600 hover:text-blue-800 font-bold"
-							on:click={() => openDetailModal(fb.text)}
+							on:click={() => dispatch('openDetailFeedback', { text: fb.text })}
 						>
 							Detail
 						</button>

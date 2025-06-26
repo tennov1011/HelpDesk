@@ -15,9 +15,8 @@
 	let employees = [];
 	let selectedTicket = null;
 	let showTicketModal = false;
-=======
->>>>>>> Stashed changes
 	let showFeedbackModal = false;
+	let showDetailModal = false;
 	let authReady = false;
 	let roleReady = false;
 	let currentRole = undefined;
@@ -34,18 +33,19 @@
 					Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz`
 				}
 			});
+			// Sort sebelum mapping agar data terbaru di urutan pertama
 			tickets = res.data.data
 				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((t) => ({
-					id: `T00${t.id}`,
+					id: `TK${t.id}`,
 					rawId: t.id,
 					date: t.date_created,
 					name: t.name,
 					email: t.email,
 					division: t.division,
-					desc: t.desc,
 					contactPhone: t.contactPhone,
 					category: t.category,
+					desc : t.desc,
 					photo_ticket: t.photo_ticket,
 					ticket: t.ticket,
 					device: t.device,
@@ -74,7 +74,7 @@
 			feedbacks = res.data.data
 				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((fb, idx) => ({
-					id: `#F${String(fb.id).padStart(3, '0')}`,
+					id: `F${String(fb.id).padStart(3, '0')}`,
 					rawId: fb.id, // Tambahkan rawId untuk referensi
 					date: fb.date_created ? fb.date_created.slice(0, 10) : '',
 					text: fb.feedback,
@@ -100,19 +100,40 @@
 				}
 			});
 			ticketUpdates = res.data.data;
-			ticketUpdates = ticketUpdates.map((update) => ({
-				id: `TU00${update.id}`,
-				rawId: update.id,
-				ticketId: update.ticket_id,
-				date: update.date,
-				status: update.status,
-				pic: update.pic,
-				description: update.description,
-				attachment: update.attachment || ''
-			}));
+			ticketUpdates = ticketUpdates.map((update) => {
+				console.log('DEBUG TicketUpdate:', {
+					id: `TU00${update.id}`,
+					rawId: update.id,
+					ticketId: update.ticket_id,
+					type_id: typeof update.id,
+					type_ticketId: typeof update.ticket_id
+				});
+				return {
+					id: `TU00${update.id}`,
+					rawId: update.id,
+					ticketId: update.ticket_id,
+					date: update.date,
+					status: update.status,
+					pic: update.pic,
+					description: update.description,
+					attachment: update.attachment || ''
+				};
+			});
 		} catch (e) {
 			console.error('Gagal mengambil TicketUpdates:', e);
 		}
+	}
+
+	function formatDate(dateStr) {
+		if (!dateStr) return '';
+		const d = new Date(dateStr);
+		if (isNaN(d)) return dateStr;
+		const day = String(d.getDate()).padStart(2, '0');
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const year = d.getFullYear();
+		const hours = String(d.getHours()).padStart(2, '0');
+		const minutes = String(d.getMinutes()).padStart(2, '0');
+		return `${day}/${month}/${year} ${hours}:${minutes}`;
 	}
 
 	function openFeedbackModal() {
@@ -120,30 +141,23 @@
 	}
 	function closeFeedbackModal() {
 		showFeedbackModal = false;
+		selectedTicket = null; // Reset selected ticket
+	}
+	function openTicketModal() {
+		showTicketModal = true;
+	}
+	function closeTicketModal() {
+		showTicketModal = false;
+		selectedTicket = null; // Reset selected ticket
 	}
 	function openDetailModal(ticket) {
 		selectedTicket = ticket;
 		showDetailModal = true;
 	}
-	function closeDetailModalTicket() {
-		showDetailModalTicket = false;
+	function closeDetailModal() {
+		showDetailModal = false;
 		selectedTicket = null;
-		detailFieldsTicket = [];
-		selectedPic = '';
 	}
-
-	// Lihat Detail Informasi Ticket
-	let showTicketDetailModal = false;
-	let ticketDetailText = '';
-	function openTicketDetailModal(text) {
-		ticketDetailText = text;
-		showTicketDetailModal = true;
-	}
-	function closeTicketDetailModal() {
-		showTicketDetailModal = false;
-		ticketDetailText = '';
-	}
-=======
 
 	// Modal untuk detail feedback
 	let showImageModalFeedback = false;
@@ -170,8 +184,43 @@
 		detailTextFeedback = '';
 	}
 
+	// Modal untuk  detail tiket
+	// Lihat Detail Informasi Ticket
+	let showTicketDetailModal = false;
+	let ticketDetailText = '';
+	function openTicketDetailModal(text) {
+		ticketDetailText = text;
+		showTicketDetailModal = true;
+	}
+	function closeTicketDetailModal() {
+		showTicketDetailModal = false;
+		ticketDetailText = '';
+	}
 
->>>>>>> Stashed changes
+	// Tambahkan state/modal untuk update detail dan image
+	let showUpdateDetailModal = false;
+	let selectedTicketUpdates = [];
+	let showUpdateImageModal = false;
+	let updateImageUrl = '';
+
+	function handleOpenUpdateDetail(e) {
+		console.log('openUpdateDetail event:', e.detail);
+		selectedTicketUpdates = e.detail.updates;
+		showUpdateDetailModal = true;
+	}
+
+	function closeTicketUpdateDetail() {
+		showUpdateDetailModal = false;
+		selectedTicketUpdates = [];
+	}
+	function handleOpenUpdateImage(e) {
+		updateImageUrl = e.detail.url;
+		showUpdateImageModal = true;
+	}
+	function closeUpdateImageModal() {
+		showUpdateImageModal = false;
+		updateImageUrl = '';
+	}
 
 	let unsubAuth, unsubRole;
 
@@ -262,14 +311,17 @@
 	<div class="p-4 max-w-6xl mx-auto animate-fade-in">
 		<div class="flex justify-between items-center mb-6">
 			<h1 class="text-xl font-bold drop-shadow text-blue-800">
-				Halo {myEmployee.nama_karyawan}, what your needs ?
+				Halo {myEmployee.nama_karyawan}, what is your needs ?
 			</h1>
 		</div>
 
 		<!-- Quick Actions -->
 		<div class="flex items-center gap-4 mb-6">
 			<div class="flex justify-center">
-				<Notification userEmail={myEmployee.email_company} />
+				<Notification
+					userEmail={myEmployee.email_company}
+					token="JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz"
+				/>
 			</div>
 			<!-- Tombol Feedback & Tiket Baru -->
 			<div class="grid grid-cols-2 gap-4 flex-1">
@@ -287,13 +339,8 @@
 		</div>
 
 		<!-- Tiket Saya -->
-		<div class="mb-6 animate-fade-in-up gap-10px">
-			<h2
-				class="text-2xl font-bold mb-2 text-blue-700 font-mono"
-				style="font-family: Monaco, monospace;"
-			>
-				Tiket Saya
-			</h2>
+		<div class="bg-white p-4 rounded-xl shadow-lg mb-6 animate-fade-in-up">
+			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">Tiket Saya</h2>
 			{#if userTickets.length === 0}
 				<div class="text-center text-gray-500 py-8">Belum ada tiket yang dibuat.</div>
 			{:else}
@@ -303,34 +350,21 @@
 					showActions={true}
 					showNames={false}
 					showDivisions={false}
-<<<<<<< Updated upstream
+					showPriority={false}
+					showDate={false}
+					showDepartments={true}
+					showDescription={true}
+					{ticketUpdates}
 					on:detail={(e) => openDetailModal(e.detail.ticket)}
+					on:openUpdateDetail={handleOpenUpdateDetail}
+					on:openUpdateImage={handleOpenUpdateImage}
 				/>
-				{/if}
-			</div>
+			{/if}
 		</div>
 
-		<!-- Modal TicketDetail -->
-		{#if showDetailModal && selectedTicket}
-			<div
-				class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
-			>
-				<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
-					<button
-						class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
-						on:click={closeDetailModal}>&times;</button
-					>
-					<TicketDetail ticket={selectedTicket} onClose={closeDetailModal} />
-				</div>
-			</div>
-		{/if}
-
-			<h2
-				class="text-2xl font-bold mb-2 text-blue-700 font-mono"
-				style="font-family: Monaco, monospace;"
-			>
-				Feedback Saya
-			</h2>
+		<!-- Feedback Saya -->
+		<div class="bg-white p-4 rounded-xl shadow-lg mb-6 animate-fade-in-up">
+			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">Feedback Saya</h2>
 			{#if userFeedbacks.length === 0}
 				<div class="text-center text-gray-500 py-8">Belum ada feedback.</div>
 			{:else}
@@ -340,12 +374,11 @@
 					showName={false}
 					showEdit={false}
 					statusEditable={false}
-					on:openImage={handleOpenImageFeedback}
+					on:openImageFeedback={handleOpenImageFeedback}
 					on:openDetailFeedback={handleOpenDetailFeedback}
 				/>
 			{/if}
 		</div>
-
 		<!-- Modal FeedbackForm -->
 		{#if showFeedbackModal}
 			<div
@@ -359,6 +392,24 @@
 					<FeedbackForm
 						onClose={closeFeedbackModal}
 						on:submitted={handleFeedbackSubmitted}
+						employee={myEmployee}
+					/>
+				</div>
+			</div>
+		{/if}
+		<!-- Modal TicketingForm -->
+		{#if showTicketModal}
+			<div
+				class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+			>
+				<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
+					<button
+						class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+						on:click={closeTicketModal}>&times;</button
+					>
+					<TicketingForm
+						onClose={closeTicketModal}
+						on:submitted={handleTicketSubmitted}
 						employee={myEmployee}
 					/>
 				</div>
@@ -383,21 +434,6 @@
 	</div>
 {/if}
 
-{#if showImageModalTicket}
-	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
-		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
-		>
-			<button
-				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
-				on:click={closeImageTicket}>&times;</button
-			>
-			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Tiket</h3>
-			<img src={imageUrlTicket} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
-		</div>
-	</div>
-{/if}
-
 {#if showImageModalFeedback}
 	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
 		<div
@@ -413,105 +449,170 @@
 	</div>
 {/if}
 
-{#if showDetailModalTicket && selectedTicket}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+{#if showUpdateDetailModal}
+	<div class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-8 relative animate-fade-in-up">
+			<button
+				class="absolute top-4 right-6 text-2xl text-gray-400 hover:text-red-500 transition"
+				on:click={closeTicketUpdateDetail}
+				aria-label="Tutup"
+			>
+				&times;
+			</button>
+			<h2 class="text-xl font-extrabold mb-6 text-blue-700 text-center drop-shadow">
+				Track Ticket
+			</h2>
+			{#if selectedTicketUpdates.length > 0}
+				<div class="space-y-6 max-h-96 overflow-y-auto pr-2">
+					{#each [...selectedTicketUpdates].sort((a, b) => new Date(b.date) - new Date(a.date)) as update, idx}
+						<div class="border-b pb-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-2">
+								<div class="font-semibold text-gray-600">Tanggal Update:</div>
+								<div class="text-gray-800">{formatDate(update.date)}</div>
+
+								<div class="font-semibold text-gray-600">Deskripsi:</div>
+								<div class="text-gray-800">{update.description}</div>
+
+								<div class="font-semibold text-gray-600">PIC:</div>
+								<div class="text-gray-800">{update.pic}</div>
+
+								<div class="font-semibold text-gray-600">Status:</div>
+								<div class="text-gray-800">{update.status}</div>
+
+								<div class="font-semibold text-gray-600">Lampiran:</div>
+								<div class="text-gray-800">
+									{#if update.attachment}
+										<button
+											class="text-blue-600 text-s font-semibold mt-1"
+											on:click={() => {
+												let url = update.attachment;
+												if (url && !url.startsWith('http')) {
+													url = `https://directus.eltamaprimaindo.com/assets/${url}`;
+												}
+												handleOpenUpdateImage({ detail: { url } });
+											}}
+										>
+											Lihat File
+										</button>
+									{:else}
+										<span class="text-gray-500">Tidak ada lampiran</span>
+									{/if}
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="text-center text-gray-500 text-base py-8">
+					Tidak ada riwayat update untuk tiket ini.
+				</div>
+			{/if}
+			<div class="flex justify-end mt-8">
+				<button
+					class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold"
+					on:click={closeTicketUpdateDetail}
+				>
+					Tutup
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+{#if showUpdateImageModal}
+	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-gradient-to-br from-blue-50 via-white to-blue-100 border border-blue-200 rounded-2xl shadow-4xl p-8 max-w-7xl w-full h-[50vh] overflow-y-auto relative animate-fade-in-up"
+			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
 		>
 			<button
-				class="absolute top-3 right-5 text-2xl text-gray-400 hover:text-red-500 transition"
-				on:click={closeDetailModalTicket}>&times;</button
+				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				on:click={closeUpdateImageModal}>&times;</button
 			>
-			<h2 class="text-xl font-extrabold mb-6 text-blue-700 drop-shadow gap-5">
-				Detail Tiket <span
-					class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-base font-semibold ml-2"
-					>{selectedTicket?.id}</span
-				>
-			</h2>
-			<table class="w-full text-left mb-4 border-separate border-spacing-y-1">
-				<tbody class="space-y-2">
-					{#each detailFieldsTicket as [key, value], idx}
-						<tr class={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-							<td class="font-semibold pr-4 py-2 capitalize text-blue-900 w-1/3">
-								{key.replace(/_/g, ' ')}
-							</td>
-							<td class="py-2 text-gray-700 break-words">
-								{#if key.toLowerCase() === 'detail'}
-									<button
-										class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
-										type="button"
-										on:click={() => openTicketDetailModal(value)}
-									>
-										Lihat Detail
-									</button>
-								{:else if Array.isArray(value)}
-									{value.join(', ')}
-								{:else}
-									{value}
-								{/if}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Update Tiket</h3>
+			<img src={updateImageUrl} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
 		</div>
 	</div>
 {/if}
 
 {#if showTicketDetailModal}
-	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
+	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-70">
 		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full h-[60vh] relative flex flex-col items-center overflow-y-auto animate-fade-in-up"
+			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[60vh]"
+			style="max-height: 80vh; overflow-y: auto"
 		>
 			<button
-				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				class="absolute top-3 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
 				on:click={closeTicketDetailModal}>&times;</button
 			>
-			<h3 class="text-lg font-bold mb-4 text-blue-700">Detail Informasi Tiket</h3>
-			<div
-				class="overflow-y-scroll max-w-3xl w-full max-h-[50vh] border rounded p-4 bg-blue-50 text-gray-800 whitespace-pre-line"
+			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Informasi Tiket</h2>
+			<p class="text-gray-800 whitespace-pre-line text-justify">{ticketDetailText}</p>
+		</div>
+	</div>
+{/if}
+
+<!-- Modal Detail Tiket -->
+{#if showDetailModal && selectedTicket}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 relative animate-fade-in-up max-h-[90vh] overflow-y-auto">
+			<button
+				class="absolute top-4 right-6 text-2xl text-gray-400 hover:text-red-500 transition"
+				on:click={closeDetailModal}
+				aria-label="Tutup"
 			>
-				{ticketDetailText}
+				&times;
+			</button>
+			<h2 class="text-xl font-extrabold mb-6 text-blue-700 text-center drop-shadow">
+				Detail Tiket - {selectedTicket.id}
+			</h2>
+			<div class="space-y-4">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+					<div class="font-semibold text-gray-600">Nama:</div>
+					<div class="text-gray-800">{selectedTicket.name}</div>
+					
+					<div class="font-semibold text-gray-600">Kategori:</div>
+					<div class="text-gray-800">{selectedTicket.category}</div>
+					
+					<div class="font-semibold text-gray-600">Departemen Tujuan:</div>
+					<div class="text-gray-800">{selectedTicket.target_department}</div>
+					
+					<div class="font-semibold text-gray-600">Status:</div>
+					<div class="text-gray-800">{selectedTicket.status}</div>
+					
+					<div class="font-semibold text-gray-600">Tanggal Dibuat:</div>
+					<div class="text-gray-800">{new Date(selectedTicket.date).toLocaleString('id-ID')}</div>
+				</div>
+				
+				<div class="mt-4">
+					<div class="font-semibold text-gray-600 mb-2">Deskripsi Masalah:</div>
+					<div class="text-gray-800 whitespace-pre-line bg-gray-50 p-3 rounded border">{selectedTicket.ticket}</div>
+				</div>
+				
+				{#if selectedTicket.photo_ticket}
+					<div class="mt-4">
+						<div class="font-semibold text-gray-600 mb-2">Lampiran:</div>
+						<img 
+							src="https://directus.eltamaprimaindo.com/assets/{selectedTicket.photo_ticket}" 
+							alt="Lampiran tiket" 
+							class="max-w-full h-auto rounded border cursor-pointer"
+							on:click={() => {
+								window.open(`https://directus.eltamaprimaindo.com/assets/${selectedTicket.photo_ticket}`, '_blank');
+							}}
+						/>
+					</div>
+				{/if}
+			</div>
+			
+			<div class="flex justify-end mt-8">
+				<button
+					class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold"
+					on:click={closeDetailModal}
+				>
+					Tutup
+				</button>
 			</div>
 		</div>
 	</div>
 {/if}
 
-<<<<<<< Updated upstream
-=======
-{#if showDetailModalFeedback}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-		<div
-			class="bg-white rounded-lg shadow-lg p-6 relative w-[90vw] max-w-4xl overflow-y-scroll flex flex-col items-center animate-fade-in-up"
-			style="max-height: 50vh"
-		>
-			<button
-				class="absolute top-4 right-6 text-gray-500 hover:text-red-600 text-3xl font-bold"
-				on:click={closeDetailModalFeedback}>&times;</button
-			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Feedback</h2>
-			<p class="text-gray-800 whitespace-pre-line text-justify">{detailTextFeedback}</p>
-		</div>
-	</div>
-{/if}
-
-{#if showImageModalFeedback}
-	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
-		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
-		>
-			<button
-				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
-				on:click={closeImageFeedback}>&times;</button
-			>
-			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Feedback</h3>
-			<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
-		</div>
-	</div>
-{/if}
-
-
->>>>>>> Stashed changes
 <style>
 	@keyframes fade-in {
 		from {

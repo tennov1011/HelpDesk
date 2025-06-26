@@ -23,8 +23,7 @@
 	let device = '';
 	let label = '';
 	let location = '';
-	let problem_type = '';
-	let date_created = new Date().toISOString();
+	let problem_type = [];
 	export let employee = null;
 
 	const departmentOptions = [
@@ -39,21 +38,79 @@
 		'Project'
 	];
 	const appTypeOptions = ['ERP', 'Web App', 'Mobile App', 'Lainnya'];
-	const deviceTypeOptions = ['PC', 'Printer', 'Scanner', 'Jaringan', 'Switch', 'Lainnya'];
+	const deviceTypeOptions = [
+		// Perangkat Kantor / Indoor - Manufacturing & Office
+		'PC',
+		'Laptop',
+		'Printer',
+		'Scanner',
+		'Monitor',
+		'UPS',
+		'Server',
+		'Router',
+		'Switch',
+		'Access Point',
+		'IP Camera',
+		'Proyektor',
+		'AC',
+		'Smartphone',
+		'Tablet',
+
+		// Alat IT & Jaringan
+		'Firewall',
+		'NAS Storage',
+		'Modem',
+		'Network Printer',
+		'Barcode Scanner',
+		'RFID Reader',
+
+		// Peralatan Lapangan - Contractor Cat & Surface Preparation
+		'Sandblasting Machine',
+		'Paint Sprayer',
+		'Pressure Washer',
+		'Grinder',
+		'Air Compressor',
+		'Moisture Meter',
+		'Coating Thickness Gauge',
+		'Thermometer',
+		'Hygrometer',
+		'Surface Profile Comparator',
+		'Dew Point Meter',
+		'Portable Power Generator',
+		'LED Work Light',
+		'Safety Helmet with Camera',
+		'Gas Detector',
+		'Infrared Thermometer',
+		'Ultrasonic Cleaner',
+		'Welding Machine',
+		'Epoxy Mixing Machine',
+		'Curing Lamp',
+
+		// IoT Devices & Monitoring Tools
+		'Environmental Sensor',
+		'GPS Tracker',
+		'Telematics Device',
+		'Temperature Logger',
+		'Vibration Sensor',
+		'Asset Tracker',
+		'Smart Safety Vest',
+		'Drone',
+		'Mobile Data Terminal (MDT)'
+	];
 	const problemTypeOptions = [
-		'Komputer Tidak menyala',
+		'AC mati/tidak dingin',
+		'Komputer tidak menyala',
 		'Perangkat rusak fisik',
-		'Wifi Putus jaringan',
-		'Kabel bawah meja terlalu kusut atau tertarik',
-		'Stop kontak rusak atau tidak mengalirkan listrik',
-		'AC mati atau tidak dingin menyebabkan overheat perangkat',
-		'Ruang server berdebu dan ventilasi buruk',
-		'Kipas pendingin server atau komputer tidak berputar',
-		'Tiupan angin kencang merobohkan tiang antena atau kabel',
-		'Kabel terkubur longsor atau terkena alat berat',
-		'Kotak panel atau enclosure terkena air hujan / banjir',
-		'Vandalisme: kabel dicuri, bracket dilepas, atau perangkat dirusak',
-		'Panel surya atau sensor lapangan tertutup debu atau lumpur',
+		'WiFi putus jaringan',
+		'Kabel kusut/tertarik',
+		'Stop kontak rusak/tidak berdaya',
+		'Ruang server berdebu/ventilasi buruk',
+		'Kipas pendingin tidak berputar',
+		'Angin kencang merobohkan tiang/kabel',
+		'Kabel tertimbun longsor/alat berat',
+		'Enclosure terkena air',
+		'Vandalisme (kabel dicuri/perangkat dirusak)',
+		'Panel surya/sensor tertutup debu/lumpur',
 		'Lainnya'
 	];
 	const priorityOptions = ['Rendah', 'Sedang', 'Tinggi', 'Darurat'];
@@ -124,7 +181,7 @@
 			location,
 			problem_type,
 			app_type,
-			date_created
+			date_created: new Date().toISOString()
 		};
 
 		console.log('Data yang akan dikirim:', data);
@@ -135,11 +192,6 @@
 		}
 		if (!data.target_department) {
 			showNotification('error', 'Pilih Departemen harus diisi');
-			isLoading = false;
-			return;
-		}
-		if (!ticket || ticket.trim() === '') {
-			showNotification('error', 'Detail Masalah harus diisi');
 			isLoading = false;
 			return;
 		}
@@ -166,7 +218,6 @@
 			problem_type = [];
 			contactPhone = '';
 			photo_ticket = [];
-			date_created = new Date().toISOString();
 			setTimeout(() => {
 				dispatch('submitted');
 			}, 1000);
@@ -360,17 +411,16 @@
 						</div>
 					</div>
 				</div>
-			{:else if category === 'Lainnya'}
-				<div>
-					<label>Judul Deskripsi</label>
-					<input
-						type="text"
-						class="w-full px-4 py-2 border rounded-lg"
-						placeholder="Tuliskan kategori lain"
-						bind:value={desc}
-					/>
-				</div>
 			{/if}
+			<div>
+				<label>Judul Deskripsi</label>
+				<input
+					type="text"
+					class="w-full px-4 py-2 border rounded-lg"
+					placeholder="Tuliskan kategori lain"
+					bind:value={desc}
+				/>
+			</div>
 			<div>
 				<label class="block font-semibold mb-2">Pilih Departemen</label>
 				<select bind:value={target_department} class="w-full px-4 py-2 border rounded-lg">

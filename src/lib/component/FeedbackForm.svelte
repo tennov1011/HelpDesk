@@ -2,12 +2,10 @@
 	import { onMount, onDestroy, createEventDispatcher } from 'svelte';
 	import axios from 'axios';
 	import { writable } from 'svelte/store';
-	import { userRole, userDepartment, userName } from '$lib/services/firebaseConfig';
 
 	export let employee = null;
 
 	let feedback = '';
-	let date_created = new Date().toISOString();
 	let rating = '1';
 	let url = '';
 	let photo_feedback = [];
@@ -33,6 +31,9 @@
 		}, 1000);
 	}
 
+	onMount(() => {
+		document.addEventListener('keydown', handleKeydown);
+	});
 	onDestroy(() => {
 		document.removeEventListener('keydown', handleKeydown);
 	});
@@ -67,8 +68,7 @@
 			feedback,
 			rating,
 			url,
-			photo_feedback: photo_feedback_id,
-			date_created,
+			photo_feedback: photo_feedback_id
 		};
 
 		console.log('Payload yang dikirim:', data); // Tambahkan baris ini
@@ -84,7 +84,6 @@
 			rating = '1';
 			url = '';
 			photo_feedback = [];
-			date_created = new Date().toISOString();
 			// Tambahkan redirect ke dashboard setelah submit sukses
 			setTimeout(() => {
 				dispatch('submitted');

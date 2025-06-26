@@ -12,7 +12,7 @@
 	let error = '';
 	let isLoggedIn = false;
 
-	// Store references 
+	// Store references
 	let login = null;
 	let authError = null;
 	let isAuthenticated = null;
