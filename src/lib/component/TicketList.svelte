@@ -7,7 +7,7 @@
 	export let showPriority = true;
 	export let showDate = true;
 	export let showDivisions = true;
-	export let showDescription = false;
+	export let showDescription = true;
 	export let showDepartments = false; // tambahkan prop baru
 	export let ticketUpdates = [];
 
@@ -88,8 +88,6 @@
 				['nama', ticket.name],
 				['divisi', ticket.division],
 				['email', ticket.email],
-				['Judul Deskripsi', ticket.desc],
-				['prioritas', ticket.priority],
 				['kategori', ticket.category],
 				['jenis aplikasi', ticket.app_type],
 				['URL/Nama Aplikasi', ticket.url_name_app],
@@ -108,8 +106,6 @@
 				['divisi', ticket.division],
 				['email', ticket.email],
 				['kategori', ticket.category],
-				['Judul Deskripsi', ticket.desc],
-				['prioritas', ticket.priority],
 				['perangkat', ticket.device],
 				['label', ticket.label],
 				['lokasi', ticket.location],
@@ -128,8 +124,6 @@
 				['divisi', ticket.division],
 				['email', ticket.email],
 				['kategori', ticket.category],
-				['Judul Deskripsi', ticket.desc],
-				['prioritas', ticket.priority],
 				['detail', ticket.ticket],
 				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
 				['PIC', ticket.pic]
@@ -360,6 +354,9 @@
 				{#if showDivisions}
 					<th class="text-center">Divisi</th>
 				{/if}
+				{#if showDescription}
+					<th class="text-center">Deskripsi</th>
+				{/if}
 				{#if showPriority}
 					<th class="text-center">Prioritas</th>
 				{/if}
@@ -368,9 +365,6 @@
 				{/if}
 				{#if showDepartments}
 					<th class="text-center">Departemen</th>
-				{/if}
-				{#if showDescription}
-					<th class="text-center">Deskripsi</th>
 				{/if}
 				<th class="text-center">Status</th>
 				{#if isAdmin}
@@ -393,6 +387,9 @@
 					{#if showDivisions}
 						<td class="text-center">{ticket.division}</td>
 					{/if}
+					{#if showDescription}
+						<td class="text-center">{ticket.desc}</td>
+					{/if}
 					{#if showPriority}
 						<td class="text-center">{ticket.priority}</td>
 					{/if}
@@ -401,9 +398,6 @@
 					{/if}
 					{#if showDepartments}
 						<td class="text-center">{ticket.target_department}</td>
-					{/if}
-					{#if showDescription}
-						<td class="text-center">{ticket.desc}</td>
 					{/if}
 					<!-- Kolom Status -->
 					<td class="text-center">
@@ -467,10 +461,10 @@
 										></path>
 									</svg>
 								</button>
-								
+
 								<!-- Separator -->
 								<span class="text-gray-400 text-sm">/</span>
-								
+
 								<!-- Button Detail Update -->
 								<button
 									class="text-blue-600 hover:text-blue-800 transition p-2 hover:bg-blue-50 rounded-full"
