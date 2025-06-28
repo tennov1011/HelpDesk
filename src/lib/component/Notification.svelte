@@ -83,32 +83,6 @@
 		}
 	}
 
-	function scheduleNotificationReset() {
-		if (!userEmail) return;
-		
-		const resetKey = `notif_reset_scheduled_${userEmail}`;
-		const existingTimer = localStorage.getItem(resetKey);
-		
-		// Jika sudah ada timer yang dijadwalkan dalam 2 jam terakhir, skip
-		if (existingTimer && Date.now() - Number(existingTimer) < RESET_INTERVAL) {
-			return;
-		}
-		
-		// Simpan timestamp kapan timer dijadwalkan
-		localStorage.setItem(resetKey, Date.now().toString());
-		
-		// Set timeout untuk 2 jam (2 * 60 * 60 * 1000 ms)
-		setTimeout(async () => {
-			console.log('Auto-deleting notifications after 2 hours for user:', userEmail);
-			await deleteAllNotifications();
-			localStorage.removeItem(resetKey);
-		}, RESET_INTERVAL);
-		
-		console.log('Notification reset scheduled for 2 hours from now');
-	}
-
-	const RESET_INTERVAL = 2 * 60 * 60 * 1000;
-
 	function handleClickOutside(event) {
 		if (showNotifDropdown && notifDropdownEl && !notifDropdownEl.contains(event.target)) {
 			showNotifDropdown = false;
@@ -132,20 +106,6 @@
 	$: userEmail, fetchNotifications();
 
 	function getVisibleNotifications() {
-		if (!userEmail) return [];
-		const lastReadKey = `notif_last_read_${userEmail}`;
-		const lastRead = localStorage.getItem(lastReadKey);
-		const now = Date.now();
-		if (!lastRead) return notifications;
-		if (now - Number(lastRead) > RESET_INTERVAL) {
-			return notifications.filter(
-				(n) =>
-					n.read === false ||
-					n.read === 'false' ||
-					n.read === 0 ||
-					new Date(n.date).getTime() > Number(lastRead)
-			);
-		}
 		return notifications;
 	}
 </script>
@@ -156,7 +116,6 @@
 			showNotifDropdown = !showNotifDropdown;
 			if (!showNotifDropdown) return;
 			markAllAsRead();
-			scheduleNotificationReset(); // Jadwalkan penghapusan otomatis setelah 2 jam
 		}}
 		aria-label="Notifikasi"
 		class="relative"
@@ -187,7 +146,22 @@
 			class="absolute right-0 mt-2 w-64 bg-white shadow-lg rounded-lg z-50 p-2"
 			bind:this={notifDropdownEl}
 		>
-			<h3 class="font-semibold mb-2 text-gray-700">Notifikasi</h3>
+			<div class="flex justify-between items-center mb-2">
+				<h3 class="font-semibold text-gray-700">Notifikasi</h3>
+				{#if notifications.length > 0}
+					<button
+						on:click={async () => {
+							if (confirm('Yakin ingin menghapus semua notifikasi?')) {
+								await deleteAllNotifications();
+							}
+						}}
+						class="text-red-600 hover:text-red-800 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 transition"
+						title="Hapus Semua Notifikasi"
+					>
+						Hapus Semua
+					</button>
+				{/if}
+			</div>
 			{#if notifications.length === 0}
 				<div class="text-gray-500 text-sm">Tidak ada notifikasi.</div>
 			{:else}

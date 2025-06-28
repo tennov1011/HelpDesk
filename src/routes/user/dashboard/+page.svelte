@@ -13,6 +13,7 @@
 	let tickets = [];
 	let feedbacks = [];
 	let employees = [];
+	let ticketUpdates = [];
 	let selectedTicket = null;
 	let showTicketModal = false;
 	let showFeedbackModal = false;
@@ -26,6 +27,7 @@
 
 	export let myEmployee;
 
+	// Fetch semua data tiket dari API Directus
 	async function fetchTickets() {
 		try {
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/TicketForm', {
@@ -45,7 +47,7 @@
 					division: t.division,
 					contactPhone: t.contactPhone,
 					category: t.category,
-					desc : t.desc,
+					desc: t.desc,
 					photo_ticket: t.photo_ticket,
 					ticket: t.ticket,
 					device: t.device,
@@ -64,6 +66,7 @@
 		}
 	}
 
+	// Fetch semua data feedback dari API Directus
 	async function fetchFeedback() {
 		try {
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/FeedbackForm', {
@@ -90,8 +93,7 @@
 		}
 	}
 
-	let ticketUpdates = [];
-
+	// Fetch semua data update tiket dari API Directus
 	async function fetchTicketUpdates() {
 		try {
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/TicketUpdate', {
@@ -124,6 +126,7 @@
 		}
 	}
 
+	// Format tanggal ke format Indonesia
 	function formatDate(dateStr) {
 		if (!dateStr) return '';
 		const d = new Date(dateStr);
@@ -136,24 +139,29 @@
 		return `${day}/${month}/${year} ${hours}:${minutes}`;
 	}
 
+	// Buka modal form feedback baru
 	function openFeedbackModal() {
 		showFeedbackModal = true;
 	}
+	// Tutup modal form feedback
 	function closeFeedbackModal() {
 		showFeedbackModal = false;
-		selectedTicket = null; // Reset selected ticket
 	}
+	// Buka modal form tiket baru
 	function openTicketModal() {
 		showTicketModal = true;
 	}
+	// Tutup modal form tiket
 	function closeTicketModal() {
 		showTicketModal = false;
 		selectedTicket = null; // Reset selected ticket
 	}
+	// Buka modal detail tiket
 	function openDetailModal(ticket) {
 		selectedTicket = ticket;
 		showDetailModal = true;
 	}
+	// Tutup modal detail tiket
 	function closeDetailModal() {
 		showDetailModal = false;
 		selectedTicket = null;
@@ -162,10 +170,12 @@
 	// Modal untuk detail feedback
 	let showImageModalFeedback = false;
 	let imageUrlFeedback = '';
+	// Handler untuk buka modal gambar feedback
 	function handleOpenImageFeedback(e) {
 		imageUrlFeedback = e.detail.url;
 		showImageModalFeedback = true;
 	}
+	// Tutup modal gambar feedback
 	function closeImageFeedback() {
 		showImageModalFeedback = false;
 		imageUrlFeedback = '';
@@ -174,27 +184,15 @@
 	// Modal untuk detail feedback
 	let showDetailModalFeedback = false;
 	let detailTextFeedback = '';
-
+	// Handler untuk buka modal detail text feedback
 	function handleOpenDetailFeedback(e) {
 		detailTextFeedback = e.detail.text;
 		showDetailModalFeedback = true;
 	}
+	// Tutup modal detail text feedback
 	function closeDetailModalFeedback() {
 		showDetailModalFeedback = false;
 		detailTextFeedback = '';
-	}
-
-	// Modal untuk  detail tiket
-	// Lihat Detail Informasi Ticket
-	let showTicketDetailModal = false;
-	let ticketDetailText = '';
-	function openTicketDetailModal(text) {
-		ticketDetailText = text;
-		showTicketDetailModal = true;
-	}
-	function closeTicketDetailModal() {
-		showTicketDetailModal = false;
-		ticketDetailText = '';
 	}
 
 	// Tambahkan state/modal untuk update detail dan image
@@ -203,27 +201,42 @@
 	let showUpdateImageModal = false;
 	let updateImageUrl = '';
 
+	// Handler untuk buka modal riwayat update tiket
 	function handleOpenUpdateDetail(e) {
 		console.log('openUpdateDetail event:', e.detail);
 		selectedTicketUpdates = e.detail.updates;
 		showUpdateDetailModal = true;
 	}
-
+	// Tutup modal riwayat update tiket
 	function closeTicketUpdateDetail() {
 		showUpdateDetailModal = false;
 		selectedTicketUpdates = [];
 	}
+	// Handler untuk buka modal gambar lampiran update
 	function handleOpenUpdateImage(e) {
 		updateImageUrl = e.detail.url;
 		showUpdateImageModal = true;
 	}
+	// Tutup modal gambar lampiran update
 	function closeUpdateImageModal() {
 		showUpdateImageModal = false;
 		updateImageUrl = '';
 	}
 
+	// Handler setelah tiket berhasil di-submit
+	function handleTicketSubmitted() {
+		closeTicketModal();
+		fetchTickets(); // refresh data tiket
+	}
+	// Handler setelah feedback berhasil di-submit
+	function handleFeedbackSubmitted() {
+		closeFeedbackModal();
+		fetchFeedback(); // refresh data feedback
+	}
+
 	let unsubAuth, unsubRole;
 
+	// Setup Firebase authentication listeners
 	onMount(() => {
 		unsubAuth = isAuthenticated.subscribe((auth) => {
 			if (auth === undefined) return;
@@ -248,50 +261,43 @@
 			}
 		});
 	});
-
+	// Cleanup Firebase subscriptions
 	onDestroy(() => {
 		if (unsubAuth) unsubAuth();
 		if (unsubRole) unsubRole();
 	});
 
-	function handleTicketSubmitted() {
-		closeTicketModal();
-		fetchTickets(); // refresh data tiket
-	}
-
-	function handleFeedbackSubmitted() {
-		closeFeedbackModal();
-		fetchFeedback(); // refresh data feedback
-	}
-
-	$: myEmployee = employees.find(
-		(e) =>
-			e.email_company && e.email_company.trim().toLowerCase() === $userEmail?.trim().toLowerCase()
-	);
-
-	$: userTickets = myEmployee
-		? tickets.filter(
-				(t) => t.email?.trim().toLowerCase() === myEmployee.email_company?.trim().toLowerCase()
-			)
-		: [];
-	$: userFeedbacks = myEmployee
-		? feedbacks.filter(
-				(fb) => fb.email?.trim().toLowerCase() === myEmployee.email_company?.trim().toLowerCase()
-			)
-		: [];
-
+	// Handler untuk menutup dropdown notifikasi ketika klik di luar
 	function handleClickOutside(event) {
 		if (showNotifDropdown && notifDropdownEl && !notifDropdownEl.contains(event.target)) {
 			showNotifDropdown = false;
 		}
 	}
-
+	// Setup event listener untuk click outside
 	onMount(() => {
 		document.addEventListener('mousedown', handleClickOutside);
 		return () => {
 			document.removeEventListener('mousedown', handleClickOutside);
 		};
 	});
+
+	// Reactive: Cari data karyawan yang cocok dengan email user
+	$: myEmployee = employees.find(
+		(e) =>
+			e.email_company && e.email_company.trim().toLowerCase() === $userEmail?.trim().toLowerCase()
+	);
+	// Reactive: Filter tiket yang dibuat oleh user yang sedang login
+	$: userTickets = myEmployee
+		? tickets.filter(
+				(t) => t.email?.trim().toLowerCase() === myEmployee.email_company?.trim().toLowerCase()
+			)
+		: [];
+	// Reactive: Filter feedback yang dibuat oleh user yang sedang login
+	$: userFeedbacks = myEmployee
+		? feedbacks.filter(
+				(fb) => fb.email?.trim().toLowerCase() === myEmployee.email_company?.trim().toLowerCase()
+			)
+		: [];
 </script>
 
 <svelte:head>
@@ -301,8 +307,10 @@
 		content="Dashboard untuk User dengan fleksibilitas membuat form ticket atau feedback baru."
 	/>
 </svelte:head>
+<!-- Conditional: Loading state saat autentikasi atau role checking belum selesai -->
 {#if !authReady || !roleReady}
 	<div class="flex items-center justify-center min-h-screen text-lg text-blue-700">Loading...</div>
+<!-- Conditional: Loading state saat data karyawan belum tersedia -->
 {:else if !myEmployee}
 	<div class="flex items-center justify-center min-h-screen text-lg text-blue-700">
 		Memuat data karyawan...
@@ -341,6 +349,7 @@
 		<!-- Tiket Saya -->
 		<div class="bg-white p-4 rounded-xl shadow-lg mb-6 animate-fade-in-up">
 			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">Tiket Saya</h2>
+			<!-- Conditional: Empty state jika belum ada tiket -->
 			{#if userTickets.length === 0}
 				<div class="text-center text-gray-500 py-8">Belum ada tiket yang dibuat.</div>
 			{:else}
@@ -365,6 +374,7 @@
 		<!-- Feedback Saya -->
 		<div class="bg-white p-4 rounded-xl shadow-lg mb-6 animate-fade-in-up">
 			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">Feedback Saya</h2>
+			<!-- Conditional: Empty state jika belum ada feedback -->
 			{#if userFeedbacks.length === 0}
 				<div class="text-center text-gray-500 py-8">Belum ada feedback.</div>
 			{:else}
@@ -379,76 +389,120 @@
 				/>
 			{/if}
 		</div>
-		<!-- Modal FeedbackForm -->
-		{#if showFeedbackModal}
-			<div
-				class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
-			>
-				<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
-					<button
-						class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
-						on:click={closeFeedbackModal}>&times;</button
-					>
-					<FeedbackForm
-						onClose={closeFeedbackModal}
-						on:submitted={handleFeedbackSubmitted}
-						employee={myEmployee}
-					/>
-				</div>
-			</div>
-		{/if}
-		<!-- Modal TicketingForm -->
-		{#if showTicketModal}
-			<div
-				class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
-			>
-				<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
-					<button
-						class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
-						on:click={closeTicketModal}>&times;</button
-					>
-					<TicketingForm
-						onClose={closeTicketModal}
-						on:submitted={handleTicketSubmitted}
-						employee={myEmployee}
-					/>
-				</div>
-			</div>
-		{/if}
 	</div>
 {/if}
 
-{#if showDetailModalFeedback}
+<!-- Conditional: Modal untuk form feedback baru -->
+{#if showFeedbackModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+	>
+		<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
+			<button
+				class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+				on:click={closeFeedbackModal}>&times;</button
+			>
+			<FeedbackForm
+				onClose={closeFeedbackModal}
+				on:submitted={handleFeedbackSubmitted}
+				employee={myEmployee}
+			/>
+		</div>
+	</div>
+{/if}
+
+<!-- Conditional: Modal untuk form tiket baru -->
+{#if showTicketModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+	>
+		<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
+			<button
+				class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+				on:click={closeTicketModal}>&times;</button
+			>
+			<TicketingForm
+				onClose={closeTicketModal}
+				on:submitted={handleTicketSubmitted}
+				employee={myEmployee}
+			/>
+		</div>
+	</div>
+{/if}
+
+<!-- Conditional: Modal untuk detail tiket -->
+{#if showDetailModal && selectedTicket}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-lg shadow-lg p-6 relative w-[90vw] max-w-4xl overflow-y-scroll flex flex-col items-center animate-fade-in-up"
-			style="max-height: 50vh"
+			class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 relative animate-fade-in-up max-h-[90vh] overflow-y-auto"
 		>
 			<button
-				class="absolute top-4 right-6 text-gray-500 hover:text-red-600 text-3xl font-bold"
-				on:click={closeDetailModalFeedback}>&times;</button
+				class="absolute top-4 right-6 text-2xl text-gray-400 hover:text-red-500 transition"
+				on:click={closeDetailModal}
+				aria-label="Tutup"
 			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Feedback</h2>
-			<p class="text-gray-800 whitespace-pre-line text-justify">{detailTextFeedback}</p>
+				&times;
+			</button>
+			<h2 class="text-xl font-extrabold mb-6 text-blue-700 text-center drop-shadow">
+				Detail Tiket - {selectedTicket.id}
+			</h2>
+			<div class="space-y-4">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+					<div class="font-semibold text-gray-600">Nama:</div>
+					<div class="text-gray-800">{selectedTicket.name}</div>
+
+					<div class="font-semibold text-gray-600">Kategori:</div>
+					<div class="text-gray-800">{selectedTicket.category}</div>
+
+					<div class="font-semibold text-gray-600">Departemen Tujuan:</div>
+					<div class="text-gray-800">{selectedTicket.target_department}</div>
+
+					<div class="font-semibold text-gray-600">Status:</div>
+					<div class="text-gray-800">{selectedTicket.status}</div>
+
+					<div class="font-semibold text-gray-600">Tanggal Dibuat:</div>
+					<div class="text-gray-800">{new Date(selectedTicket.date).toLocaleString('id-ID')}</div>
+				</div>
+
+				<div class="mt-4">
+					<div class="font-semibold text-gray-600 mb-2">Deskripsi Masalah:</div>
+					<div class="text-gray-800 whitespace-pre-line bg-gray-50 p-3 rounded border">
+						{selectedTicket.ticket}
+					</div>
+				</div>
+
+				<!-- Conditional: Tampilkan lampiran jika ada -->
+				{#if selectedTicket.photo_ticket}
+					<div class="mt-4">
+						<div class="font-semibold text-gray-600 mb-2">Lampiran:</div>
+						<img
+							src="https://directus.eltamaprimaindo.com/assets/{selectedTicket.photo_ticket}"
+							alt="Lampiran tiket"
+							class="max-w-full h-auto rounded border cursor-pointer"
+							on:click={() => {
+								window.open(
+									`https://directus.eltamaprimaindo.com/assets/${selectedTicket.photo_ticket}`,
+									'_blank'
+								);
+							}}
+						/>
+					</div>
+				{/if}
+			</div>
+
+			<div class="flex justify-end mt-8">
+				<button
+					class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold"
+					on:click={closeDetailModal}
+				>
+					Tutup
+				</button>
+			</div>
 		</div>
 	</div>
 {/if}
 
-{#if showImageModalFeedback}
-	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
-		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
-		>
-			<button
-				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
-				on:click={closeImageFeedback}>&times;</button
-			>
-			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Feedback</h3>
-			<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
-		</div>
-	</div>
-{/if}
-
+<!-- Conditional: Modal untuk riwayat update tiket -->
 {#if showUpdateDetailModal}
 	<div class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
 		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-8 relative animate-fade-in-up">
@@ -462,6 +516,7 @@
 			<h2 class="text-xl font-extrabold mb-6 text-blue-700 text-center drop-shadow">
 				Track Ticket
 			</h2>
+			<!-- Conditional: Tampilkan daftar update atau empty state -->
 			{#if selectedTicketUpdates.length > 0}
 				<div class="space-y-6 max-h-96 overflow-y-auto pr-2">
 					{#each [...selectedTicketUpdates].sort((a, b) => new Date(b.date) - new Date(a.date)) as update, idx}
@@ -481,6 +536,7 @@
 
 								<div class="font-semibold text-gray-600">Lampiran:</div>
 								<div class="text-gray-800">
+									<!-- Conditional: Tampilkan link file atau pesan tidak ada -->
 									{#if update.attachment}
 										<button
 											class="text-blue-600 text-s font-semibold mt-1"
@@ -518,6 +574,8 @@
 		</div>
 	</div>
 {/if}
+
+<!-- Conditional: Modal untuk gambar lampiran update -->
 {#if showUpdateImageModal}
 	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
 		<div
@@ -527,88 +585,41 @@
 				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
 				on:click={closeUpdateImageModal}>&times;</button
 			>
-			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Update Tiket</h3>
+			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran</h3>
 			<img src={updateImageUrl} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
 		</div>
 	</div>
 {/if}
 
-{#if showTicketDetailModal}
-	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-70">
+<!-- Conditional: Modal untuk detail text feedback -->
+{#if showDetailModalFeedback}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[60vh]"
-			style="max-height: 80vh; overflow-y: auto"
+			class="bg-white rounded-lg shadow-lg p-6 relative w-[90vw] max-w-4xl overflow-y-scroll flex flex-col items-center animate-fade-in-up"
+			style="max-height: 50vh"
 		>
 			<button
-				class="absolute top-3 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
-				on:click={closeTicketDetailModal}>&times;</button
+				class="absolute top-4 right-6 text-gray-500 hover:text-red-600 text-3xl font-bold"
+				on:click={closeDetailModalFeedback}>&times;</button
 			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Informasi Tiket</h2>
-			<p class="text-gray-800 whitespace-pre-line text-justify">{ticketDetailText}</p>
+			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Feedback</h2>
+			<p class="text-gray-800 whitespace-pre-line text-justify">{detailTextFeedback}</p>
 		</div>
 	</div>
 {/if}
 
-<!-- Modal Detail Tiket -->
-{#if showDetailModal && selectedTicket}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 relative animate-fade-in-up max-h-[90vh] overflow-y-auto">
+<!-- Conditional: Modal untuk gambar lampiran feedback -->
+{#if showImageModalFeedback}
+	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
+		<div
+			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
+		>
 			<button
-				class="absolute top-4 right-6 text-2xl text-gray-400 hover:text-red-500 transition"
-				on:click={closeDetailModal}
-				aria-label="Tutup"
+				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				on:click={closeImageFeedback}>&times;</button
 			>
-				&times;
-			</button>
-			<h2 class="text-xl font-extrabold mb-6 text-blue-700 text-center drop-shadow">
-				Detail Tiket - {selectedTicket.id}
-			</h2>
-			<div class="space-y-4">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-					<div class="font-semibold text-gray-600">Nama:</div>
-					<div class="text-gray-800">{selectedTicket.name}</div>
-					
-					<div class="font-semibold text-gray-600">Kategori:</div>
-					<div class="text-gray-800">{selectedTicket.category}</div>
-					
-					<div class="font-semibold text-gray-600">Departemen Tujuan:</div>
-					<div class="text-gray-800">{selectedTicket.target_department}</div>
-					
-					<div class="font-semibold text-gray-600">Status:</div>
-					<div class="text-gray-800">{selectedTicket.status}</div>
-					
-					<div class="font-semibold text-gray-600">Tanggal Dibuat:</div>
-					<div class="text-gray-800">{new Date(selectedTicket.date).toLocaleString('id-ID')}</div>
-				</div>
-				
-				<div class="mt-4">
-					<div class="font-semibold text-gray-600 mb-2">Deskripsi Masalah:</div>
-					<div class="text-gray-800 whitespace-pre-line bg-gray-50 p-3 rounded border">{selectedTicket.ticket}</div>
-				</div>
-				
-				{#if selectedTicket.photo_ticket}
-					<div class="mt-4">
-						<div class="font-semibold text-gray-600 mb-2">Lampiran:</div>
-						<img 
-							src="https://directus.eltamaprimaindo.com/assets/{selectedTicket.photo_ticket}" 
-							alt="Lampiran tiket" 
-							class="max-w-full h-auto rounded border cursor-pointer"
-							on:click={() => {
-								window.open(`https://directus.eltamaprimaindo.com/assets/${selectedTicket.photo_ticket}`, '_blank');
-							}}
-						/>
-					</div>
-				{/if}
-			</div>
-			
-			<div class="flex justify-end mt-8">
-				<button
-					class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold"
-					on:click={closeDetailModal}
-				>
-					Tutup
-				</button>
-			</div>
+			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Feedback</h3>
+			<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
 		</div>
 	</div>
 {/if}

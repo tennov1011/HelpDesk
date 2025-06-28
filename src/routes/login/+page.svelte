@@ -125,7 +125,7 @@
 					/>
 				</svg>
 			</div>
-			<h2 class="text-3xl font-bold text-white">Login ke Sistem</h2>
+			<h2 class="text-3xl font-bold text-white">Login Dulu</h2>
 			<p class="mt-2 text-sm text-white">Form Feedback</p>
 		</div>
 
@@ -156,7 +156,7 @@
 					<!-- Email Field -->
 					<div>
 						<label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-							Email Address
+							Email
 						</label>
 						<div class="relative">
 							<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -279,8 +279,6 @@
 					</div>
 				</form>
 			</div>
-		{:else}
-			<Feedback />
 		{/if}
 
 		<!-- Footer -->

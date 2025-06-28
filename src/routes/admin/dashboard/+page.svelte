@@ -14,10 +14,13 @@
 	let currentRole = undefined;
 	let isLoggedIn = false;
 	let adminDepartment;
+	let unsubAuth, unsubRole, unsubDept;
+	// Subscribe to user department store to track admin's department
 	userDepartment.subscribe((dept) => {
 		adminDepartment = dept;
 	});
 
+	// Fetch all tickets from Directus API
 	async function fetchTickets() {
 		try {
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/TicketForm', {
@@ -38,7 +41,7 @@
 					category: t.category,
 					photo_ticket: t.photo_ticket,
 					ticket: t.ticket,
-					desc : t.desc,
+					desc: t.desc,
 					device: t.device,
 					url_name_app: t.url_name_app,
 					priority: t.priority,
@@ -56,6 +59,7 @@
 		}
 	}
 
+	// Fetch all feedback from Directus API
 	async function fetchFeedback() {
 		try {
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/FeedbackForm', {
@@ -82,58 +86,96 @@
 		}
 	}
 
-	let unsubAuth, unsubRole, unsubDept;
-
-	onMount(() => {
-		unsubAuth = isAuthenticated.subscribe((auth) => {
-			if (auth === undefined) return;
-			authReady = true;
-			isLoggedIn = !!auth;
-			if (!auth) goto('/login');
-		});
-		unsubRole = userRole.subscribe((role) => {
-			if (role === undefined) return;
-			roleReady = true;
-			currentRole = role;
-			if (role !== 'admin') goto('/login');
-			// fetch data hanya jika sudah siap dan role benar
-			if (authReady && roleReady && isLoggedIn && currentRole === 'admin') {
-				fetchTickets();
-				fetchFeedback();
-			}
-		});
-		unsubDept = userDepartment.subscribe((dept) => {
-			adminDepartment = dept;
-		});
-	});
-
-	// Jangan lupa cleanup
-	onDestroy(() => {
-		if (unsubAuth) unsubAuth();
-		if (unsubRole) unsubRole();
-		if (unsubDept) unsubDept();
-	});
-
-	$: ticketsByDept = tickets.filter(
-		(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
-	);
-
-	$: filteredTickets = tickets.filter(
-		(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
-	);
-
-	$: if (adminDepartment !== undefined) {
-		console.log('adminDepartment:', adminDepartment);
+	// Modal image state and handlers for ticket attachments
+	let showImageModalTicket = false;
+	let imageUrlTicket = '';
+	// Open image modal for ticket attachment
+	function handleOpenImageTicket(e) {
+		imageUrlTicket = e.detail.url;
+		showImageModalTicket = true;
+	}
+	// Close ticket image modal
+	function closeImageTicket() {
+		showImageModalTicket = false;
+		imageUrlTicket = '';
 	}
 
-	$: console.log(
-		'tickets:',
-		tickets.map((t) => ({ id: t.id, department: t.department }))
-	);
+	// Modal image state and handlers for feedback attachments
+	let showImageModalFeedback = false;
+	let imageUrlFeedback = '';
+	// Open image modal for feedback attachment
+	function handleOpenImageFeedback(e) {
+		imageUrlFeedback = e.detail.url;
+		showImageModalFeedback = true;
+	}
+	// Close feedback image modal
+	function closeImageFeedback() {
+		showImageModalFeedback = false;
+		imageUrlFeedback = '';
+	}
 
-	// Delete Ticket
+	// Modal state for feedback detail view
+	let showDetailModalFeedback = false;
+	let detailTextFeedback = '';
+
+	// Open feedback detail modal
+	function handleOpenDetailFeedback(e) {
+		console.log('openDetailFeedback event:', e.detail); // Debug log
+		detailTextFeedback = e.detail.text;
+		showDetailModalFeedback = true;
+	}
+	// Close feedback detail modal
+	function closeDetailModalFeedback() {
+		showDetailModalFeedback = false;
+		detailTextFeedback = '';
+	}
+
+	// Modal state for ticket detail view
+	let showDetailModalTicket = false;
+	let selectedTicket = null;
+	let detailFieldsTicket = [];
+	let selectedPic = '';
+
+	// Open ticket detail modal
+	function handleOpenDetailTicket(e) {
+		selectedTicket = e.detail.ticket;
+		detailFieldsTicket = e.detail.detailFields;
+		selectedPic = e.detail.ticket.pic || '';
+		showDetailModalTicket = true;
+	}
+	// Close ticket detail modal
+	function closeDetailModalTicket() {
+		showDetailModalTicket = false;
+		selectedTicket = null;
+		detailFieldsTicket = [];
+		selectedPic = '';
+	}
+
+	// Modal state for ticket detail information text
+	let showTicketDetailModal = false;
+	let ticketDetailText = '';
+	// Open modal to display ticket detail text
+	function openTicketDetailModal(text) {
+		ticketDetailText = text;
+		showTicketDetailModal = true;
+	}
+	// Close ticket detail information modal
+	function closeTicketDetailModal() {
+		showTicketDetailModal = false;
+		ticketDetailText = '';
+	}
+
+	// Handle ticket update event from child component
+	function handleTicketUpdated(e) {
+		const updated = e.detail.updatedTicket;
+		tickets = tickets.map((t) => (t.rawId === updated.rawId ? { ...t, ...updated } : t));
+	}
+
+	// Delete selected ticket from Directus API
 	async function deleteTicket() {
+		// Check if ticket is selected
 		if (!selectedTicket) return;
+		// Confirm deletion action
 		if (!confirm('Yakin ingin menghapus tiket ini?')) return;
 		try {
 			await axios.delete(
@@ -150,79 +192,60 @@
 		}
 	}
 
-	// Modal Imgae ticket
-	let showImageModalTicket = false;
-	let imageUrlTicket = '';
-	function handleOpenImageTicket(e) {
-		imageUrlTicket = e.detail.url;
-		showImageModalTicket = true;
-	}
-	function closeImageTicket() {
-		showImageModalTicket = false;
-		imageUrlTicket = '';
+	// Initialize auth, role, and department subscriptions on component mount
+	onMount(() => {
+		unsubAuth = isAuthenticated.subscribe((auth) => {
+			// Check authentication status and redirect if not authenticated
+			if (auth === undefined) return;
+			authReady = true;
+			isLoggedIn = !!auth;
+			if (!auth) goto('/login');
+		});
+		unsubRole = userRole.subscribe((role) => {
+			// Check user role and fetch data if admin
+			if (role === undefined) return;
+			roleReady = true;
+			currentRole = role;
+			if (role !== 'admin') goto('/login');
+			// fetch data hanya jika sudah siap dan role benar
+			if (authReady && roleReady && isLoggedIn && currentRole === 'admin') {
+				fetchTickets();
+				fetchFeedback();
+			}
+		});
+		// Subscribe to user department changes
+		unsubDept = userDepartment.subscribe((dept) => {
+			adminDepartment = dept;
+		});
+	});
+
+	// Clean up subscriptions when component is destroyed
+	onDestroy(() => {
+		if (unsubAuth) unsubAuth();
+		if (unsubRole) unsubRole();
+		if (unsubDept) unsubDept();
+	});
+
+	// Reactive statement: Filter tickets by admin's department
+	$: ticketsByDept = tickets.filter(
+		(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
+	);
+
+	// Reactive statement: Get filtered tickets for display
+	$: filteredTickets = tickets.filter(
+		(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
+	);
+
+	// Reactive statement: Log admin department changes for debugging
+	$: if (adminDepartment !== undefined) {
+		console.log('adminDepartment:', adminDepartment);
 	}
 
-	// Modal Image Feedback
-	let showImageModalFeedback = false;
-	let imageUrlFeedback = '';
-	function handleOpenImageFeedback(e) {
-		imageUrlFeedback = e.detail.url;
-		showImageModalFeedback = true;
-	}
-	function closeImageFeedback() {
-		showImageModalFeedback = false;
-		imageUrlFeedback = '';
-	}
-
-	// Modal Detail Feedback
-	let showDetailModalFeedback = false;
-	let detailTextFeedback = '';
-
-	function handleOpenDetailFeedback(e) {
-		console.log('openDetailFeedback event:', e.detail); // Debug log
-		detailTextFeedback = e.detail.text;
-		showDetailModalFeedback = true;
-	}
-	function closeDetailModalFeedback() {
-		showDetailModalFeedback = false;
-		detailTextFeedback = '';
-	}
-
-	// Modal Detail Ticket
-	let showDetailModalTicket = false;
-	let selectedTicket = null;
-	let detailFieldsTicket = [];
-	let selectedPic = '';
-
-	function handleOpenDetailTicket(e) {
-		selectedTicket = e.detail.ticket;
-		detailFieldsTicket = e.detail.detailFields;
-		selectedPic = e.detail.ticket.pic || '';
-		showDetailModalTicket = true;
-	}
-	function closeDetailModalTicket() {
-		showDetailModalTicket = false;
-		selectedTicket = null;
-		detailFieldsTicket = [];
-		selectedPic = '';
-	}
-
-	// Lihat Detail Informasi Ticket
-	let showTicketDetailModal = false;
-	let ticketDetailText = '';
-	function openTicketDetailModal(text) {
-		ticketDetailText = text;
-		showTicketDetailModal = true;
-	}
-	function closeTicketDetailModal() {
-		showTicketDetailModal = false;
-		ticketDetailText = '';
-	}
-
-	function handleTicketUpdated(e) {
-		const updated = e.detail.updatedTicket;
-		tickets = tickets.map((t) => (t.rawId === updated.rawId ? { ...t, ...updated } : t));
-	}
+	// Reactive statement: Log ticket departments for debugging
+	$: console.log(
+		'tickets:',
+		tickets.map((t) => ({ id: t.id, department: t.department }))
+	);
 </script>
 
 <svelte:head>
@@ -232,6 +255,7 @@
 		content="Dashboard untuk Admin Helpdesk dengan statistik dan daftar tiket terbaru."
 	/>
 </svelte:head>
+<!-- Check if authentication and role are ready -->
 {#if !authReady || !roleReady}
 	<div class="flex items-center justify-center min-h-screen text-lg text-blue-700">Loading...</div>
 {:else}
@@ -266,6 +290,7 @@
 	</div>
 {/if}
 
+<!-- Modal for ticket image display -->
 {#if showImageModalTicket}
 	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
 		<div
@@ -281,6 +306,7 @@
 	</div>
 {/if}
 
+<!-- Modal for feedback image display -->
 {#if showImageModalFeedback}
 	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
 		<div
@@ -296,6 +322,7 @@
 	</div>
 {/if}
 
+<!-- Modal for feedback detail text display -->
 {#if showDetailModalFeedback}
 	<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40">
 		<div
@@ -312,6 +339,7 @@
 	</div>
 {/if}
 
+<!-- Modal for ticket detail information display -->
 {#if showDetailModalTicket && selectedTicket}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
 		<div
@@ -330,11 +358,13 @@
 			<table class="w-full text-left mb-4 border-separate border-spacing-y-1">
 				<tbody class="space-y-2">
 					{#each detailFieldsTicket as [key, value], idx}
+						<!-- Display alternating row colors -->
 						<tr class={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
 							<td class="font-semibold pr-4 py-2 capitalize text-blue-900 w-1/3">
 								{key.replace(/_/g, ' ')}
 							</td>
 							<td class="py-2 text-gray-700 break-words">
+								<!-- Check if field is detail and show button -->
 								{#if key.toLowerCase() === 'detail'}
 									<button
 										class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
@@ -343,7 +373,9 @@
 									>
 										Lihat Detail
 									</button>
+									<!-- Check if field is attachment and show file button -->
 								{:else if key.toLowerCase() === 'lampiran'}
+									<!-- Check if ticket has photo attachment -->
 									{#if selectedTicket.photo_ticket}
 										<button
 											class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
@@ -358,6 +390,7 @@
 									{:else}
 										<span class="text-gray-400 italic">Tidak Tersedia</span>
 									{/if}
+									<!-- Check if value is array and join with comma -->
 								{:else if Array.isArray(value)}
 									{value.join(', ')}
 								{:else}
@@ -368,6 +401,7 @@
 					{/each}
 				</tbody>
 			</table>
+			<!-- Check if current user is admin to show delete button -->
 			{#if currentRole === 'admin'}
 				<div class="mt-6 bg-red-50 rounded-lg p-4 border border-red-100 flex justify-center">
 					<button
@@ -382,6 +416,7 @@
 	</div>
 {/if}
 
+<!-- Modal for ticket detail text information -->
 {#if showTicketDetailModal}
 	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-70">
 		<div

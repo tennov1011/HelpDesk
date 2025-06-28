@@ -21,14 +21,25 @@
 	let departmentFilter = 'All';
 	let isLoading = false;
 	let selectedPic = '';
+	let showUpdateModal = false;
+	let updateForm = {
+		id: '',
+		date: '',
+		description: '',
+		attachment: null,
+		pic: '',
+		status: 'Pending'
+	};
+	let updatingTicket = null;
+	let tempStatus = {};
+	let showSuccess = false;
+	let currentPage = 1;
 
 	const DIRECTUS_URL = 'https://directus.eltamaprimaindo.com';
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
-
-	let showSuccess = false;
-
-	let currentPage = 1;
 	const rowsPerPage = 6;
+
+	
 
 	function handleStatusFilter(e) {
 		statusFilter = e.target.value;
@@ -39,24 +50,6 @@
 		departmentFilter = e.target.value;
 		currentPage = 1;
 	}
-
-	$: filteredStatus =
-		statusFilter === 'All'
-			? tickets
-			: tickets.filter((t) => (t.status || '').toLowerCase() === statusFilter.toLowerCase());
-
-	$: filteredDepartment =
-		departmentFilter === 'All'
-			? filteredStatus
-			: filteredStatus.filter((t) => t.target_department === departmentFilter);
-
-	$: filteredTickets = filteredDepartment;
-
-	$: totalPages = Math.ceil(filteredTickets.length / rowsPerPage);
-	$: paginatedTickets = filteredTickets.slice(
-		(currentPage - 1) * rowsPerPage,
-		currentPage * rowsPerPage
-	);
 
 	function nextPage() {
 		if (currentPage < totalPages) currentPage += 1;
@@ -138,26 +131,6 @@
 			showDetailModal = true;
 		}
 	}
-	function closeDetail() {
-		showDetailModal = false;
-		selectedTicket = null;
-		detailFields = [];
-	}
-
-	async function deleteTicket() {
-		if (!selectedTicket) return;
-		if (!confirm('Yakin ingin menghapus tiket ini?')) return;
-		try {
-			await axios.delete(`${DIRECTUS_URL}/items/TicketForm/${selectedTicket.rawId}`, {
-				headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }
-			});
-			alert('Ticket berhasil dihapus');
-			dispatch('deleted');
-			closeDetail();
-		} catch (e) {
-			alert('Gagal menghapus tiket');
-		}
-	}
 
 	function formatDate(dateStr) {
 		if (!dateStr) return '';
@@ -170,18 +143,6 @@
 		const minutes = String(d.getMinutes()).padStart(2, '0');
 		return `${day}/${month}/${year} ${hours}:${minutes}`;
 	}
-
-	// Tambahkan state untuk modal update
-	let showUpdateModal = false;
-	let updateForm = {
-		id: '',
-		date: '',
-		description: '',
-		attachment: null,
-		pic: '',
-		status: 'Pending'
-	};
-	let updatingTicket = null;
 
 	// Fungsi buka modal update
 	function openUpdateModal(ticket) {
@@ -310,7 +271,23 @@
 		}
 	}
 
-	let tempStatus = {};
+	$: filteredStatus =
+		statusFilter === 'All'
+			? tickets
+			: tickets.filter((t) => (t.status || '').toLowerCase() === statusFilter.toLowerCase());
+
+	$: filteredDepartment =
+		departmentFilter === 'All'
+			? filteredStatus
+			: filteredStatus.filter((t) => t.target_department === departmentFilter);
+
+	$: filteredTickets = filteredDepartment;
+
+	$: totalPages = Math.ceil(filteredTickets.length / rowsPerPage);
+	$: paginatedTickets = filteredTickets.slice(
+		(currentPage - 1) * rowsPerPage,
+		currentPage * rowsPerPage
+	);
 </script>
 
 <div class="overflow-x-auto">
