@@ -1,7 +1,4 @@
 <script>
-	import { onMount } from 'svelte';
-	import { userRole, userDepartment, userName } from '$lib/services/firebaseConfig';
-
 	let showLogoutModal = false;
 	export let employee = null;
 

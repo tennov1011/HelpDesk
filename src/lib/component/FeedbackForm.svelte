@@ -13,8 +13,8 @@
 
 	const dispatch = createEventDispatcher();
 
-	const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL;
-	const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN;
+	const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL || 'https://directus.eltamaprimaindo.com';
+	const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN || 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
 
 	function getDirectusUrl(path) {
 		return `${DIRECTUS_URL.replace(/\/$/, '')}${path}`;
@@ -38,11 +38,56 @@
 		document.removeEventListener('keydown', handleKeydown);
 	});
 
-	// Perubahan utama: handleSubmit upload file ke Directus
+	// Validate form data before submission
+	function validateForm() {
+		if (!feedback.trim()) {
+			showNotification('error', 'Feedback tidak boleh kosong');
+			return false;
+		}
+		
+		if (!employee?.nama_karyawan) {
+			showNotification('error', 'Data employee tidak ditemukan');
+			return false;
+		}
+		
+		return true;
+	}
+
+	// Debug network connectivity
+	async function testConnection() {
+		try {
+			const response = await fetch(getDirectusUrl('/server/ping'), {
+				method: 'GET',
+				headers: {
+					Authorization: `Bearer ${DIRECTUS_TOKEN}`
+				}
+			});
+			console.log('Connection test:', response.status, response.statusText);
+			return response.ok;
+		} catch (error) {
+			console.error('Connection test failed:', error);
+			return false;
+		}
+	}
+
+	// Handle form submission with better error handling
 	const handleSubmit = async (event) => {
 		event.preventDefault();
+		
+		// Validate required fields
+		if (!validateForm()) {
+			return;
+		}
+		
+		console.log('Starting form submission...');
+		console.log('Employee data:', employee);
+		console.log('Directus URL:', getDirectusUrl('/items/FeedbackForm'));
+		console.log('Token available:', !!DIRECTUS_TOKEN);
+		
 		isLoading = true;
 		let photo_feedback_id = null;
+		
+		// Upload file if exists
 		if (photo_feedback && photo_feedback.length > 0) {
 			const formData = new FormData();
 			formData.append('file', photo_feedback[0]);
@@ -55,8 +100,8 @@
 				});
 				photo_feedback_id = uploadRes.data.data.id;
 			} catch (err) {
-				alert('Gagal upload file lampiran');
-				console.error(err);
+				console.error('File upload error:', err);
+				showNotification('error', 'Gagal upload file lampiran');
 				isLoading = false;
 				return;
 			}
@@ -65,33 +110,59 @@
 			name: employee?.nama_karyawan || '',
 			division: employee?.divisi || '',
 			email: employee?.email_company || '',
-			feedback,
-			rating,
-			url,
+			feedback: feedback.trim(),
+			rating: parseInt(rating),
+			url: url.trim(),
 			photo_feedback: photo_feedback_id
 		};
 
-		console.log('Payload yang dikirim:', data); // Tambahkan baris ini
+		console.log('Payload yang dikirim:', data);
 
 		try {
-			await axios.post(getDirectusUrl('/items/FeedbackForm'), data, {
+			const response = await axios.post(getDirectusUrl('/items/FeedbackForm'), data, {
 				headers: {
-					Authorization: `Bearer ${DIRECTUS_TOKEN}`
+					Authorization: `Bearer ${DIRECTUS_TOKEN}`,
+					'Content-Type': 'application/json'
 				}
 			});
+			
+			console.log('Response success:', response.data);
 			showNotification('success', 'Feedback Anda telah terkirim. Terima kasih!');
+			
+			// Reset form
 			feedback = '';
 			rating = '1';
 			url = '';
 			photo_feedback = [];
-			// Tambahkan redirect ke dashboard setelah submit sukses
+			
+			// Redirect ke dashboard setelah submit sukses
 			setTimeout(() => {
 				dispatch('submitted');
-			}, 1000); // beri jeda agar notifikasi sempat tampil
+			}, 1000);
 		} catch (error) {
-			showNotification('error', 'Gagal mengirim feedback');
-			console.error('Directus error:', error.response?.data || error);
-			alert(JSON.stringify(error.response?.data || error));
+			console.error('Submit error:', error);
+			
+			// Better error handling
+			let errorMessage = 'Gagal mengirim feedback';
+			if (error.response?.data?.errors) {
+				errorMessage = error.response.data.errors[0]?.message || errorMessage;
+			} else if (error.response?.data?.message) {
+				errorMessage = error.response.data.message;
+			} else if (error.message) {
+				errorMessage = error.message;
+			}
+			
+			showNotification('error', errorMessage);
+			console.error('Directus error details:', {
+				status: error.response?.status,
+				statusText: error.response?.statusText,
+				data: error.response?.data,
+				config: {
+					url: error.config?.url,
+					method: error.config?.method,
+					headers: error.config?.headers
+				}
+			});
 		} finally {
 			isLoading = false;
 		}
@@ -157,8 +228,9 @@
 	</div>
 	<!-- Lampiran/Screenshot -->
 	<div>
-		<label class="block font-semibold mb-2">Lampiran/Screenshot</label>
+		<label for="photo_feedback" class="block font-semibold mb-2">Lampiran/Screenshot</label>
 		<input
+			id="photo_feedback"
 			type="file"
 			multiple
 			on:change={(e) => {
@@ -196,6 +268,26 @@
 			placeholder="Masukkan URL"
 		/>
 	</div>
+	
+	<!-- Debug Section (only in development) -->
+	{#if import.meta.env.DEV}
+		<div class="p-4 bg-gray-100 rounded-lg">
+			<h3 class="text-sm font-semibold text-gray-600 mb-2">Debug Info</h3>
+			<div class="text-xs text-gray-500 space-y-1">
+				<p>Directus URL: {DIRECTUS_URL}</p>
+				<p>Token: {DIRECTUS_TOKEN ? '✓ Available' : '✗ Missing'}</p>
+				<p>Employee: {employee?.nama_karyawan || 'Not loaded'}</p>
+			</div>
+			<button
+				type="button"
+				on:click={testConnection}
+				class="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-xs"
+			>
+				Test Connection
+			</button>
+		</div>
+	{/if}
+	
 	<button
 		type="submit"
 		class="mt-8 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transform transition hover:-translate-y-0.5"
