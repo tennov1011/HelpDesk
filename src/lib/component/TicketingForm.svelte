@@ -23,7 +23,11 @@
 	let device = '';
 	let label = '';
 	let location = '';
-	let problem_type = [];
+	
+	// Permission to Leave fields
+	let departure_time = '';
+	let estimated_return_time = '';
+	
 	export let employee = null;
 
 	const departmentOptions = [
@@ -35,7 +39,8 @@
 		'Produksi',
 		'Inventory',
 		'Management',
-		'Project'
+		'Project',
+		'Maintenance'
 	];
 	const appTypeOptions = ['ERP', 'Web App', 'Mobile App', 'Lainnya'];
 	const deviceTypeOptions = [
@@ -96,22 +101,6 @@
 		'Smart Safety Vest',
 		'Drone',
 		'Mobile Data Terminal (MDT)'
-	];
-	const problemTypeOptions = [
-		'AC mati/tidak dingin',
-		'Komputer tidak menyala',
-		'Perangkat rusak fisik',
-		'WiFi putus jaringan',
-		'Kabel kusut/tertarik',
-		'Stop kontak rusak/tidak berdaya',
-		'Ruang server berdebu/ventilasi buruk',
-		'Kipas pendingin tidak berputar',
-		'Angin kencang merobohkan tiang/kabel',
-		'Kabel tertimbun longsor/alat berat',
-		'Enclosure terkena air',
-		'Vandalisme (kabel dicuri/perangkat dirusak)',
-		'Panel surya/sensor tertutup debu/lumpur',
-		'Lainnya'
 	];
 	const priorityOptions = ['Rendah', 'Sedang', 'Tinggi', 'Darurat'];
 
@@ -179,7 +168,8 @@
 			browser,
 			label,
 			location,
-			problem_type,
+			departure_time,
+			estimated_return_time,
 			app_type,
 			date_created: new Date().toISOString()
 		};
@@ -194,6 +184,30 @@
 			showNotification('error', 'Pilih Departemen harus diisi');
 			isLoading = false;
 			return;
+		}
+
+		// Handle time fields for "Izin Keluar" category
+		if (data.category === 'Izin Keluar') {
+			// Validate required time fields
+			if (!data.departure_time) {
+				showNotification('error', 'Jam Keluar harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!data.estimated_return_time) {
+				showNotification('error', 'Jam Estimasi Kembali harus diisi');
+				isLoading = false;
+				return;
+			}
+			
+			// Convert time strings to timestamp format for database
+			const today = new Date().toISOString().split('T')[0];
+			data.departure_time = `${today}T${data.departure_time}:00.000Z`;
+			data.estimated_return_time = `${today}T${data.estimated_return_time}:00.000Z`;
+		} else {
+			// Remove time fields for other categories
+			delete data.departure_time;
+			delete data.estimated_return_time;
 		}
 
 		try {
@@ -215,7 +229,8 @@
 			device = '';
 			label = '';
 			location = '';
-			problem_type = [];
+			departure_time = '';
+			estimated_return_time = '';
 			contactPhone = '';
 			photo_ticket = [];
 			setTimeout(() => {
@@ -303,11 +318,15 @@
 		<form on:submit={handleSubmit} class="flex flex-col gap-4 w-full">
 			<!-- Dropdown Main Category -->
 			<div>
-				<label class="block font-semibold mb-2">Kategori</label>
+				<label class="block font-semibold mb-2 flex items-center gap-1">
+					Kategori
+					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+				</label>
 				<select bind:value={category} class="w-full px-4 py-2 border rounded-lg">
 					<option value="" disabled>Pilih Kategori</option>
 					<option value="Sistem">Sistem</option>
-					<option value="Infrastruktur">Infrastruktur</option>
+					<option value="Asset">Asset</option>
+					<option value="Izin Keluar">Izin Keluar</option>
 					<option value="Lainnya">Lainnya</option>
 				</select>
 			</div>
@@ -316,7 +335,10 @@
 				<!-- System Inputs -->
 				<div class="flex flex-col gap-4">
 					<div>
-						<label>Jenis Aplikasi</label>
+						<label class="flex items-center gap-1">
+							Jenis Aplikasi
+							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+						</label>
 						<select bind:value={app_type} class="w-full px-4 py-2 border rounded-lg">
 							<option value="" disabled>Pilih Jenis Aplikasi</option>
 							{#each appTypeOptions as opt}
@@ -325,7 +347,10 @@
 						</select>
 					</div>
 					<div>
-						<label>Nama Aplikasi/URL</label>
+						<label class="flex items-center gap-1">
+							Nama Aplikasi/URL
+							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+						</label>
 						<input
 							type="text"
 							bind:value={url_name_app}
@@ -343,11 +368,14 @@
 						/>
 					</div>
 				</div>
-			{:else if category === 'Infrastruktur'}
+			{:else if category === 'Asset'}
 				<!-- Infrastructure Inputs -->
 				<div class="flex flex-col gap-4">
 					<div>
-						<label>Jenis Perangkat</label>
+						<label class="flex items-center gap-1">
+							Jenis Perangkat
+							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+						</label>
 						<select bind:value={device} class="w-full px-4 py-2 border rounded-lg">
 							<option value="" disabled>Pilih Jenis Perangkat</option>
 							{#each deviceTypeOptions as opt}
@@ -356,7 +384,7 @@
 						</select>
 					</div>
 					<div>
-						<label>Nomor/Label Aset (jika ada)</label>
+						<label>Nomor/Label Aset (Jika ada ditambahkan)</label>
 						<input
 							type="text"
 							bind:value={label}
@@ -365,7 +393,10 @@
 						/>
 					</div>
 					<div>
-						<label>Lokasi Perangkat</label>
+						<label class="flex items-center gap-1">
+							Lokasi Perangkat
+							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+						</label>
 						<input
 							type="text"
 							bind:value={location}
@@ -373,56 +404,55 @@
 							placeholder="Contoh: Kantor Pusat Lantai 2, Gudang A"
 						/>
 					</div>
+				</div>
+			{:else if category === 'Izin Keluar'}
+				<!-- Permission to Leave Inputs -->
+				<div class="flex flex-col gap-4">
 					<div>
-						<label>Tipe Masalah Fisik</label>
-						<!-- Dropdown multi-select dengan checkbox -->
-						<div class="relative problem-dropdown-container">
-							<button
-								type="button"
-								class="w-full px-4 py-2 border rounded-lg text-left bg-white"
-								on:click={() => (showProblemDropdown = !showProblemDropdown)}
-							>
-								{problem_type.length > 0 ? problem_type.join(', ') : 'Pilih Tipe Masalah Fisik'}
-								<span class="float-right">{showProblemDropdown ? '▲' : '▼'}</span>
-							</button>
-							{#if showProblemDropdown}
-								<div
-									class="absolute z-50 bg-white border rounded-lg shadow-lg mt-1 w-full max-h-60 overflow-y-auto"
-								>
-									{#each problemTypeOptions as opt}
-										<label class="flex items-center px-3 py-2 hover:bg-blue-50 cursor-pointer">
-											<input
-												type="checkbox"
-												value={opt}
-												checked={problem_type.includes(opt)}
-												on:change={() => {
-													if (problem_type.includes(opt)) {
-														problem_type = problem_type.filter((x) => x !== opt);
-													} else {
-														problem_type = [...problem_type, opt];
-													}
-												}}
-											/>
-											<span class="ml-2">{opt}</span>
-										</label>
-									{/each}
-								</div>
-							{/if}
-						</div>
+						<label class="flex items-center gap-1">
+							Jam Keluar
+							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							type="time"
+							bind:value={departure_time}
+							class="w-full px-4 py-2 border rounded-lg"
+						/>
+					</div>
+					<div>
+						<label class="flex items-center gap-1">
+							Jam Estimasi Kembali
+							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							type="time"
+							bind:value={estimated_return_time}
+							class="w-full px-4 py-2 border rounded-lg"
+						/>
 					</div>
 				</div>
 			{/if}
 			<div>
-				<label>Judul Deskripsi</label>
+				<label class="flex items-center gap-1">
+					{#if category === 'Izin Keluar'}
+						Keperluan Izin
+					{:else}
+						Judul Deskripsi
+					{/if}
+					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+				</label>
 				<input
 					type="text"
 					class="w-full px-4 py-2 border rounded-lg"
-					placeholder="Tuliskan kategori lain"
+					placeholder={category === 'Izin Keluar' ? 'Tuliskan keperluan izin Anda' : 'Tuliskan kategori lain'}
 					bind:value={desc}
 				/>
 			</div>
 			<div>
-				<label class="block font-semibold mb-2">Departemen Tujuan</label>
+				<label class="flex items-center gap-1">
+					Departemen Tujuan
+					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+				</label>
 				<select bind:value={target_department} class="w-full px-4 py-2 border rounded-lg">
 					<option value="" disabled>Pilih Departemen Tujuan</option>
 					{#each departmentOptions as opt}
@@ -432,7 +462,10 @@
 			</div>
 			<!-- Priority General -->
 			<div>
-				<label>Prioritas</label>
+				<label class="flex items-center gap-1">
+					Prioritas
+					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+				</label>
 				<select bind:value={priority} class="w-full px-4 py-2 border rounded-lg">
 					<option value="" disabled>Pilih Prioritas</option>
 					{#each priorityOptions as opt}
@@ -442,16 +475,23 @@
 			</div>
 			<!-- Ticket Detail General -->
 			<div>
-				<label>Detail Masalah</label>
+				<label class="flex items-center gap-1">
+					{#if category === 'Izin Keluar'}
+						Detail Keperluan
+					{:else}
+						Detail Masalah
+					{/if}
+					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+				</label>
 				<textarea
 					bind:value={ticket}
 					class="w-full px-4 py-2 border rounded-lg"
-					placeholder="Jelaskan detail masalah yang Anda alami"
+					placeholder={category === 'Izin Keluar' ? 'Jelaskan detail keperluan izin Anda' : 'Jelaskan detail masalah yang Anda alami'}
 				></textarea>
 			</div>
 			<!-- Attachment/Screenshot -->
 			<div>
-				<label>Lampiran/Screenshot</label>
+				<label>Lampiran/Screenshot (Opsional)</label>
 				<input
 					type="file"
 					multiple
@@ -464,7 +504,7 @@
 			</div>
 			<!-- Follow Up -->
 			<div>
-				<label>Apakah Anda ingin follow up?</label>
+				<label>Apakah Anda ingin follow up? (Opsional)</label>
 				<div class="flex gap-4 mt-1">
 					<label><input type="radio" bind:group={followUp} value="yes" /> Ya</label>
 					<label><input type="radio" bind:group={followUp} value="no" /> Tidak</label>

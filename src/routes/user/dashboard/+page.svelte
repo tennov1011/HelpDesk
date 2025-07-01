@@ -59,7 +59,9 @@
 					problem_type: t.problem_type,
 					app_type: t.app_type,
 					status: t.status,
-					target_department: t.target_department
+					target_department: t.target_department,
+					departure_time: t.departure_time,
+					estimated_return_time: t.estimated_return_time,
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);
@@ -319,7 +321,7 @@
 	<div class="p-4 max-w-6xl mx-auto animate-fade-in">
 		<div class="flex justify-between items-center mb-6">
 			<h1 class="text-xl font-bold drop-shadow text-blue-800">
-				Halo {myEmployee.nama_karyawan}, what is your needs ?
+				Halo {myEmployee.nama_karyawan}, ada yang bisa dibantu ?
 			</h1>
 		</div>
 

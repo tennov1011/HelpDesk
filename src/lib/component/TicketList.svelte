@@ -1,5 +1,5 @@
 <script>
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onDestroy } from 'svelte';
 	import axios from 'axios';
 	export let tickets = [];
 	export let isAdmin = false; // <-- tambahkan ini
@@ -35,9 +35,71 @@
 	let showSuccess = false;
 	let currentPage = 1;
 
+	// Mobile-specific variables
+	let isMobile = false;
+	let mobileSearchQuery = '';
+	let touchStartX = 0;
+	let touchEndX = 0;
+	let isTouch = false;
+	let tableElement;
+
 	const DIRECTUS_URL = 'https://directus.eltamaprimaindo.com';
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
 	const rowsPerPage = 6;
+
+	// Mobile detection and touch handling
+	function checkIfMobile() {
+		if (typeof window !== 'undefined') {
+			isMobile = window.innerWidth <= 768;
+		}
+	}
+
+	function handleTouchStart(e) {
+		if (!isMobile) return;
+		touchStartX = e.changedTouches[0].screenX;
+		isTouch = true;
+	}
+
+	function handleTouchEnd(e) {
+		if (!isMobile || !isTouch) return;
+		touchEndX = e.changedTouches[0].screenX;
+		handleSwipeGesture();
+		isTouch = false;
+	}
+
+	function handleSwipeGesture() {
+		const swipeThreshold = 50;
+		const swipeDistance = touchStartX - touchEndX;
+
+		if (Math.abs(swipeDistance) > swipeThreshold) {
+			if (swipeDistance > 0 && currentPage < totalPages) {
+				// Swipe left - next page
+				nextPage();
+			} else if (swipeDistance < 0 && currentPage > 1) {
+				// Swipe right - previous page
+				prevPage();
+			}
+		}
+	}
+
+	function handleMobileSearch(e) {
+		mobileSearchQuery = e.target.value.toLowerCase();
+		currentPage = 1; // Reset to first page when searching
+	}
+
+	// Initialize mobile detection
+	if (typeof window !== 'undefined') {
+		checkIfMobile();
+		window.addEventListener('resize', checkIfMobile);
+	}
+
+	// Cleanup on component destroy
+	onDestroy(() => {
+		if (typeof window !== 'undefined') {
+			window.removeEventListener('resize', checkIfMobile);
+			window.removeEventListener('keydown', handleUpdateModalEsc);
+		}
+	});
 
 	
 
@@ -92,7 +154,7 @@
 		} else if (
 			ticket.category &&
 			typeof ticket.category === 'string' &&
-			ticket.category.toLowerCase() === 'infrastruktur'
+			ticket.category.toLowerCase() === 'asset'
 		) {
 			detailFields = [
 				['nama', ticket.name],
@@ -103,6 +165,22 @@
 				['label', ticket.label],
 				['lokasi', ticket.location],
 				['tipe masalah', ticket.problem_type],
+				['detail', ticket.ticket],
+				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
+				['PIC', ticket.pic]
+			];
+		} else if (
+			ticket.category &&
+			typeof ticket.category === 'string' &&
+			ticket.category.toLowerCase() === 'izin keluar'
+		) {
+			detailFields = [
+				['nama', ticket.name],
+				['divisi', ticket.division],
+				['email', ticket.email],
+				['kategori', ticket.category],
+				['jam keluar', ticket.departure_time ? new Date(ticket.departure_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'],
+				['estimasi jam kembali', ticket.estimated_return_time ? new Date(ticket.estimated_return_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'],
 				['detail', ticket.ticket],
 				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
 				['PIC', ticket.pic]
@@ -135,7 +213,7 @@
 	function formatDate(dateStr) {
 		if (!dateStr) return '';
 		const d = new Date(dateStr);
-		if (isNaN(d)) return dateStr;
+		if (isNaN(d.getTime())) return dateStr;
 		const day = String(d.getDate()).padStart(2, '0');
 		const month = String(d.getMonth() + 1).padStart(2, '0');
 		const year = d.getFullYear();
@@ -281,7 +359,19 @@
 			? filteredStatus
 			: filteredStatus.filter((t) => t.target_department === departmentFilter);
 
-	$: filteredTickets = filteredDepartment;
+	// Mobile search filtering
+	$: mobileFiltered = isMobile && mobileSearchQuery
+		? filteredDepartment.filter((t) => {
+			const query = mobileSearchQuery.toLowerCase();
+			return (
+				(t.status || '').toLowerCase().includes(query) ||
+				(t.target_department || '').toLowerCase().includes(query) ||
+				(t.desc || '').toLowerCase().includes(query)
+			);
+		})
+		: filteredDepartment;
+
+	$: filteredTickets = mobileFiltered;
 
 	$: totalPages = Math.ceil(filteredTickets.length / rowsPerPage);
 	$: paginatedTickets = filteredTickets.slice(
@@ -291,7 +381,21 @@
 </script>
 
 <div class="overflow-x-auto">
-	<div class="flex justify-end mb-1 gap-2">
+	<!-- Mobile Search Bar (only visible on mobile) -->
+	{#if isMobile}
+		<div class="mb-4 md:hidden">
+			<input
+				type="text"
+				placeholder="Cari berdasarkan status, departemen, atau deskripsi..."
+				class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+				bind:value={mobileSearchQuery}
+				on:input={handleMobileSearch}
+			/>
+		</div>
+	{/if}
+
+	<!-- Desktop Filters (hidden on mobile) -->
+	<div class="flex justify-end mb-1 gap-2 md:flex hidden">
 		<!-- Filter Status -->
 		<select
 			class="border-2 rounded px-3 py-1 text-sm focus:ring focus:ring-blue-200 text-black-700 font-semibold"
@@ -319,168 +423,201 @@
 			</select>
 		{/if}
 	</div>
-	<table
-		class="w-full table-auto border-separate border-spacing-y-1 bg-white rounded-xl shadow-lg text-center"
+
+	<!-- Table with touch events for mobile swipe -->
+	<div
+		bind:this={tableElement}
+		on:touchstart={handleTouchStart}
+		on:touchend={handleTouchEnd}
+		class="touch-none select-none"
 	>
-		<thead>
-			<tr class="bg-blue-100">
-				<th class="p-2 rounded-l text-center">ID</th>
-				{#if showNames}
-					<th class="text-center">Nama</th>
-				{/if}
-				{#if showDivisions}
-					<th class="text-center">Divisi</th>
-				{/if}
-				{#if showDescription}
-					<th class="text-center">Deskripsi</th>
-				{/if}
-				{#if showPriority}
-					<th class="text-center">Prioritas</th>
-				{/if}
-				{#if showDate}
-					<th class="text-center">Tanggal</th>
-				{/if}
-				{#if showDepartments}
-					<th class="text-center">Departemen</th>
-				{/if}
-				<th class="text-center">Status</th>
-				{#if isAdmin}
-					<th class="rounded-r text-center">Aksi</th>
-				{:else}
-					<th class="rounded-r text-center">Tiket / Update</th>
-				{/if}
-			</tr>
-		</thead>
-		<tbody>
-			{#each paginatedTickets as ticket, i}
-				<tr
-					class="border-b hover:bg-blue-50 transition duration-200 animate-fade-in-up text-center"
-					style="animation-delay: {i * 60 + 200}ms; height: 50px;"
-				>
-					<td class="p-2 font-semibold text-blue-700 text-center">{ticket.id}</td>
+		<table
+			class="w-full table-auto border-separate border-spacing-y-1 bg-white rounded-xl shadow-lg text-center"
+		>
+			<thead>
+				<tr class="bg-blue-100">
+					<!-- Always show ID -->
+					<th class="p-2 rounded-l text-center">ID</th>
+					
+					<!-- Desktop columns (hidden on mobile) -->
 					{#if showNames}
-						<td class="text-center">{ticket.name}</td>
+						<th class="text-center hidden md:table-cell">Nama</th>
 					{/if}
 					{#if showDivisions}
-						<td class="text-center">{ticket.division}</td>
+						<th class="text-center hidden md:table-cell">Divisi</th>
 					{/if}
+					
+					<!-- Always show Description -->
 					{#if showDescription}
-						<td class="text-center">{ticket.desc}</td>
+						<th class="text-center">Deskripsi</th>
 					{/if}
+					
+					<!-- Desktop columns (hidden on mobile) -->
 					{#if showPriority}
-						<td class="text-center">{ticket.priority}</td>
+						<th class="text-center hidden md:table-cell">Prioritas</th>
 					{/if}
 					{#if showDate}
-						<td class="text-center">{formatDate(ticket.date)}</td>
+						<th class="text-center hidden md:table-cell">Tanggal</th>
 					{/if}
 					{#if showDepartments}
-						<td class="text-center">{ticket.target_department}</td>
+						<th class="text-center hidden md:table-cell">Departemen</th>
 					{/if}
-					<!-- Kolom Status -->
-					<td class="text-center">
-						{#if isAdmin}
-							<button
-								class={`px-2 py-1 rounded font-semibold transition 
-              					${getStatusColor(tempStatus[ticket.id] || ticket.status)}
-                				${['done', 'rejected'].includes(getStatusBtn(ticket)) ? ' cursor-default' : ' cursor-pointer'}`}
-								on:click={() => openUpdateModal(ticket)}
-								disabled={updatingStatusId === ticket.id ||
-									['done', 'rejected'].includes(getStatusBtn(ticket))}
-							>
-								{#if getStatusBtn(ticket) === 'done'}
-									Done
-								{:else if getStatusBtn(ticket) === 'rejected'}
-									Rejected
-								{:else}
-									Update
-								{/if}
-							</button>
-						{:else}
-							<span
-								class={`inline-block px-3 py-1 rounded font-semibold text-s ${getStatusColor(ticket.status)}`}
-							>
-								{ticket.status}
-							</span>
-						{/if}
-					</td>
-					<!-- Kolom Aksi -->
-					<td class="text-center">
-						{#if isAdmin}
-							<button
-								class="text-blue-500 font-bold transition text-x mr-2 hover:underline"
-								on:click={() => openDetail(ticket)}
-							>
-								Detail
-							</button>
-						{:else}
-							<!-- Container untuk 3 item: Detail, Separator, Update -->
-							<div class="flex items-center justify-center gap-2">
-								<!-- Button Detail -->
-								<button
-									class="text-blue-600 hover:text-blue-800 transition p-2 hover:bg-blue-50 rounded-full"
-									on:click={() => dispatch('detail', { ticket })}
-									title="Lihat Detail"
-									aria-label="Lihat Detail Tiket"
-								>
-									<svg
-										class="w-5 h-5"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-										stroke-width="2.5"
-									>
-										<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2.5"></circle>
-										<path
-											d="m21 21-4.35-4.35"
-											stroke="currentColor"
-											stroke-width="3"
-											stroke-linecap="round"
-										></path>
-									</svg>
-								</button>
-
-								<!-- Separator -->
-								<span class="text-gray-400 text-sm">/</span>
-
-								<!-- Button Detail Update -->
-								<button
-									class="text-blue-600 hover:text-blue-800 transition p-2 hover:bg-blue-50 rounded-full"
-									on:click={() => {
-										// Debug tipe dan nilai id
-										console.log(
-											'DEBUG ticket.rawId:',
-											ticket.rawId,
-											typeof ticket.rawId,
-											'ticketUpdates:',
-											ticketUpdates.map((u) => u.ticketId + ' (' + typeof u.ticketId + ')')
-										);
-										const updates = ticketUpdates.filter((u) => u.ticketId === ticket.id);
-										dispatch('openUpdateDetail', { updates });
-									}}
-									title="Detail Update"
-									aria-label="Lihat Detail Update Tiket"
-								>
-									<svg
-										class="w-5 h-5"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-										stroke-width="2"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-										/>
-									</svg>
-								</button>
-							</div>
-						{/if}
-					</td>
+					
+					<!-- Always show Status -->
+					<th class="text-center">Status</th>
+					
+					<!-- Always show Action column -->
+					{#if isAdmin}
+						<th class="rounded-r text-center">Aksi</th>
+					{:else}
+						<th class="rounded-r text-center">Tiket / Update</th>
+					{/if}
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each paginatedTickets as ticket, i}
+					<tr
+						class="border-b hover:bg-blue-50 transition duration-200 animate-fade-in-up text-center"
+						style="animation-delay: {i * 60 + 200}ms; height: 50px;"
+					>
+						<!-- Always show ID -->
+						<td class="p-2 font-semibold text-blue-700 text-center">{ticket.id}</td>
+						
+						<!-- Desktop columns (hidden on mobile) -->
+						{#if showNames}
+							<td class="text-center hidden md:table-cell">{ticket.name}</td>
+						{/if}
+						{#if showDivisions}
+							<td class="text-center hidden md:table-cell">{ticket.division}</td>
+						{/if}
+						
+						<!-- Always show Description -->
+						{#if showDescription}
+							<td class="text-center">
+								<!-- <div class="max-w-xs truncate" title={ticket.desc}> -->
+									{ticket.desc}
+								<!-- </div> -->
+							</td>
+						{/if}
+						
+						<!-- Desktop columns (hidden on mobile) -->
+						{#if showPriority}
+							<td class="text-center hidden md:table-cell">{ticket.priority}</td>
+						{/if}
+						{#if showDate}
+							<td class="text-center hidden md:table-cell">{formatDate(ticket.date)}</td>
+						{/if}
+						{#if showDepartments}
+							<td class="text-center hidden md:table-cell">{ticket.target_department}</td>
+						{/if}
+						
+						<!-- Always show Status -->
+						<td class="text-center">
+							{#if isAdmin}
+								<button
+									class={`px-2 py-1 rounded font-semibold transition 
+	              					${getStatusColor(tempStatus[ticket.id] || ticket.status)}
+	                				${['done', 'rejected'].includes(getStatusBtn(ticket)) ? ' cursor-default' : ' cursor-pointer'}`}
+									on:click={() => openUpdateModal(ticket)}
+									disabled={updatingStatusId === ticket.id ||
+										['done', 'rejected'].includes(getStatusBtn(ticket))}
+								>
+									{#if getStatusBtn(ticket) === 'done'}
+										Done
+									{:else if getStatusBtn(ticket) === 'rejected'}
+										Rejected
+									{:else}
+										Update
+									{/if}
+								</button>
+							{:else}
+								<span
+									class={`inline-block px-2 py-1 rounded font-semibold text-xs ${getStatusColor(ticket.status)}`}
+								>
+									{ticket.status}
+								</span>
+							{/if}
+						</td>
+						
+						<!-- Always show Action column -->
+						<td class="text-center">
+							{#if isAdmin}
+								<button
+									class="text-blue-500 font-bold transition text-x mr-2 hover:underline"
+									on:click={() => openDetail(ticket)}
+								>
+									Detail
+								</button>
+							{:else}
+								<!-- Container untuk 3 item: Detail, Separator, Update -->
+								<div class="flex items-center justify-center gap-1 md:gap-2">
+									<!-- Button Detail -->
+									<button
+										class="text-blue-600 hover:text-blue-800 transition p-1 md:p-2 hover:bg-blue-50 rounded-full"
+										on:click={() => dispatch('detail', { ticket })}
+										title="Lihat Detail"
+										aria-label="Lihat Detail Tiket"
+									>
+										<svg
+											class="w-4 h-4 md:w-5 md:h-5"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											stroke-width="2.5"
+										>
+											<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2.5"></circle>
+											<path
+												d="m21 21-4.35-4.35"
+												stroke="currentColor"
+												stroke-width="3"
+												stroke-linecap="round"
+											></path>
+										</svg>
+									</button>
+
+									<!-- Separator -->
+									<span class="text-gray-400 text-sm">/</span>
+
+									<!-- Button Detail Update -->
+									<button
+										class="text-blue-600 hover:text-blue-800 transition p-1 md:p-2 hover:bg-blue-50 rounded-full"
+										on:click={() => {
+											// Debug tipe dan nilai id
+											console.log(
+												'DEBUG ticket.rawId:',
+												ticket.rawId,
+												typeof ticket.rawId,
+												'ticketUpdates:',
+												ticketUpdates.map((u) => u.ticketId + ' (' + typeof u.ticketId + ')')
+											);
+											const updates = ticketUpdates.filter((u) => u.ticketId === ticket.id);
+											dispatch('openUpdateDetail', { updates });
+										}}
+										title="Detail Update"
+										aria-label="Lihat Detail Update Tiket"
+									>
+										<svg
+											class="w-4 h-4 md:w-5 md:h-5"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											stroke-width="2"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+											/>
+										</svg>
+									</button>
+								</div>
+							{/if}
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </div>
 
 <div class="flex justify-center items-center gap-2 mt-4">
@@ -504,6 +641,13 @@
 		Next
 	</button>
 </div>
+
+<!-- Mobile swipe instruction -->
+{#if isMobile && totalPages > 1}
+	<div class="text-center mt-2 md:hidden">
+		<p class="text-xs text-gray-500">💡 Geser tabel ke kiri/kanan untuk navigasi halaman</p>
+	</div>
+{/if}
 
 {#if showSuccess}
 	<div class="fixed inset-0 flex items-center justify-center z-[999]">
@@ -648,12 +792,29 @@
 	.animate-fade-in-up {
 		animation: fade-in-up 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
 	}
-	select.bg-transparent {
-		background: transparent;
-	}
 	select:disabled {
 		cursor: default !important;
 		background: transparent;
 		color: inherit;
+	}
+
+	/* Mobile-specific touch optimizations */
+	.touch-none {
+		touch-action: pan-x;
+	}
+
+	/* Mobile table improvements */
+	@media (max-width: 768px) {
+		table {
+			font-size: 0.875rem;
+		}
+		
+		th, td {
+			padding: 0.5rem 0.25rem !important;
+		}
+		
+		.max-w-xs {
+			max-width: 120px;
+		}
 	}
 </style>

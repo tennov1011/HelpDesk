@@ -100,6 +100,8 @@
 
 <svelte:head>
 	<title>Login - Feedback Form</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+	<meta name="theme-color" content="#9333ea">
 	<link
 		href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css"
 		rel="stylesheet"
@@ -107,16 +109,21 @@
 </svelte:head>
 
 <div
-	class="min-h-screen bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center px-4 sm:px-6 lg:px-8"
+	class="min-h-screen bg-gradient-to-br from-purple-500 to-blue-500 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8"
 >
-	<div class="fixed top-1/10 left-1/2 transform -translate-x-1/2 z-50 flex justify-center">
-		<h1 class="typewriter text-6xl font-extrabold text-white">Eltama Prima Indo</h1>
+	<!-- Mobile Header - adjusted for mobile -->
+	<div class="w-full text-center mb-6 sm:mb-8 lg:mb-12">
+		<h1 class="typewriter text-2xl sm:text-4xl lg:text-6xl font-extrabold text-white px-2">
+			Eltama Prima Indo
+		</h1>
 	</div>
-	<div class="max-w-md w-full space-y-8">
+	
+	<!-- Main Content Container -->
+	<div class="w-full max-w-sm sm:max-w-md lg:max-w-lg space-y-6 sm:space-y-8">
 		<!-- Header -->
 		<div class="text-center">
-			<div class="mx-auto h-16 w-16 bg-white rounded-full flex items-center justify-center mb-6">
-				<svg class="h-8 w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<div class="mx-auto h-12 w-12 sm:h-16 sm:w-16 bg-white rounded-full flex items-center justify-center mb-4 sm:mb-6">
+				<svg class="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -125,20 +132,20 @@
 					/>
 				</svg>
 			</div>
-			<h2 class="text-3xl font-bold text-white">Login Dulu</h2>
-			<p class="mt-2 text-sm text-white">Form Feedback</p>
+			<h2 class="text-xl sm:text-2xl lg:text-3xl font-bold text-white">Login Dulu</h2>
+			<p class="mt-1 sm:mt-2 text-xs sm:text-sm text-white opacity-90">Form Feedback</p>
 		</div>
 
 		<!-- Login Form -->
 		{#if !isLoggedIn}
-			<div class="bg-white py-8 px-6 shadow-xl rounded-xl">
-				<form class="space-y-6" on:submit|preventDefault={handleLogin}>
+			<div class="bg-white py-6 sm:py-8 px-4 sm:px-6 shadow-xl rounded-xl">
+				<form class="space-y-4 sm:space-y-6" on:submit|preventDefault={handleLogin}>
 					<!-- Error Message -->
 					{#if error}
-						<div class="bg-purple-100 border-l-4 border-purple-400 p-4 rounded-r-lg">
+						<div class="bg-purple-100 border-l-4 border-purple-400 p-3 sm:p-4 rounded-r-lg">
 							<div class="flex">
 								<div class="flex-shrink-0">
-									<svg class="h-5 w-5 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
+									<svg class="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
 										<path
 											fill-rule="evenodd"
 											d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -146,8 +153,8 @@
 										/>
 									</svg>
 								</div>
-								<div class="ml-3">
-									<p class="text-sm text-purple-700">{error}</p>
+								<div class="ml-2 sm:ml-3">
+									<p class="text-xs sm:text-sm text-purple-700">{error}</p>
 								</div>
 							</div>
 						</div>
@@ -155,13 +162,13 @@
 
 					<!-- Email Field -->
 					<div>
-						<label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="email" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
 							Email
 						</label>
 						<div class="relative">
-							<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+							<div class="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
 								<svg
-									class="h-5 w-5 text-gray-400"
+									class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -183,7 +190,7 @@
 								bind:value={email}
 								on:keypress={handleKeyPress}
 								disabled={loading}
-								class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+								class="block w-full pl-8 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
 								placeholder="nama@eltama.com"
 							/>
 						</div>
@@ -191,13 +198,13 @@
 
 					<!-- Password Field -->
 					<div>
-						<label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+						<label for="password" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
 							Password
 						</label>
 						<div class="relative">
-							<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+							<div class="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
 								<svg
-									class="h-5 w-5 text-gray-400"
+									class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
 									fill="none"
 									stroke="currentColor"
 									viewBox="0 0 24 24"
@@ -219,22 +226,22 @@
 								bind:value={password}
 								on:keypress={handleKeyPress}
 								disabled={loading}
-								class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+								class="block w-full pl-8 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
 								placeholder="Masukkan password"
 							/>
 						</div>
 					</div>
 
 					<!-- Login Button -->
-					<div>
+					<div class="pt-2">
 						<button
 							type="submit"
 							disabled={loading || !login}
-							class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-purple-400 disabled:cursor-not-allowed transition-colors"
+							class="group relative w-full flex justify-center py-2.5 sm:py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-purple-400 disabled:cursor-not-allowed transition-colors touch-manipulation"
 						>
 							{#if loading}
 								<svg
-									class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+									class="animate-spin -ml-1 mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white"
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -253,9 +260,9 @@
 										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 									></path>
 								</svg>
-								Mengirim...
+								<span class="text-sm sm:text-base">Mengirim...</span>
 							{:else if !login}
-								<svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg class="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
@@ -263,9 +270,9 @@
 										d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
 									/>
 								</svg>
-								Memuat...
+								<span class="text-sm sm:text-base">Memuat...</span>
 							{:else}
-								<svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg class="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
@@ -273,7 +280,7 @@
 										d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
 									/>
 								</svg>
-								Masuk
+								<span class="text-sm sm:text-base">Masuk</span>
 							{/if}
 						</button>
 					</div>
@@ -287,24 +294,53 @@
 </div>
 
 <style>
+	/* Typewriter effect responsive */
 	.typewriter {
 		overflow: hidden;
 		border-right: 0.15em solid #fff;
 		white-space: nowrap;
 		margin: 0 auto;
-		letter-spacing: 0.08em;
+		letter-spacing: 0.05em;
 		animation:
 			typing 3s steps(19, end) infinite,
 			blink-caret 1s step-end infinite;
-		max-width: 19ch;
 	}
 
+	/* Mobile typewriter */
+	@media (max-width: 640px) {
+		.typewriter {
+			max-width: 16ch;
+			letter-spacing: 0.03em;
+			animation:
+				typing-mobile 3s steps(16, end) infinite,
+				blink-caret 1s step-end infinite;
+		}
+	}
+
+	/* Tablet and up */
+	@media (min-width: 641px) {
+		.typewriter {
+			max-width: 19ch;
+		}
+	}
+
+	/* Desktop typing animation */
 	@keyframes typing {
 		from {
 			max-width: 0;
 		}
 		to {
 			max-width: 19ch;
+		}
+	}
+
+	/* Mobile typing animation */
+	@keyframes typing-mobile {
+		from {
+			max-width: 0;
+		}
+		to {
+			max-width: 16ch;
 		}
 	}
 
@@ -315,6 +351,29 @@
 		}
 		50% {
 			border-color: #fff;
+		}
+	}
+
+	/* Mobile-specific optimizations */
+	@media (max-width: 640px) {
+		/* Ensure forms are properly sized on mobile */
+		input[type="email"],
+		input[type="password"] {
+			font-size: 16px; /* Prevents zoom on iOS */
+		}
+		
+		/* Better touch targets */
+		button {
+			min-height: 44px;
+		}
+	}
+
+	/* Landscape mobile optimization */
+	@media (max-width: 896px) and (orientation: landscape) {
+		.min-h-screen {
+			min-height: 100vh;
+			padding-top: 1rem;
+			padding-bottom: 1rem;
 		}
 	}
 </style>

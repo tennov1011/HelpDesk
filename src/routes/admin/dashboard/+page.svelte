@@ -52,7 +52,9 @@
 					app_type: t.app_type,
 					status: t.status,
 					pic: t.pic,
-					department: t.target_department
+					department: t.target_department,
+					departure_time: t.departure_time,
+					estimated_return_time: t.estimated_return_time
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);
@@ -227,11 +229,6 @@
 	});
 
 	// Reactive statement: Filter tickets by admin's department
-	$: ticketsByDept = tickets.filter(
-		(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
-	);
-
-	// Reactive statement: Get filtered tickets for display
 	$: filteredTickets = tickets.filter(
 		(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
 	);
@@ -240,12 +237,6 @@
 	$: if (adminDepartment !== undefined) {
 		console.log('adminDepartment:', adminDepartment);
 	}
-
-	// Reactive statement: Log ticket departments for debugging
-	$: console.log(
-		'tickets:',
-		tickets.map((t) => ({ id: t.id, department: t.department }))
-	);
 </script>
 
 <svelte:head>
@@ -262,7 +253,8 @@
 	<div
 		class="p-6 bg-gradient-to-br from-blue-100 via-blue-50 to-white min-h-screen animate-fade-in"
 	>
-		<h1 class="text-2xl font-bold mb-6 text-blue-800 drop-shadow">Dashboard Admin</h1>
+		<h1 class="text-2xl font-bold text-blue-800 drop-shadow">Dashboard Admin</h1>
+		<div class="flex justify-between items-center mb-6"></div>
 		<!-- Stats -->
 		<TicketStats tickets={filteredTickets} {feedbacks} />
 

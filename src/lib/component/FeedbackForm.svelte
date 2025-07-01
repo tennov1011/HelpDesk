@@ -216,7 +216,10 @@
 	class="p-8 space-y-6 bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto"
 >
 	<div>
-		<h2 class="text-lg font-semibold text-gray-700 border-b pb-2">Feedback Baru</h2>
+		<h2 class="text-lg font-semibold text-gray-700 border-b pb-2 flex items-center gap-1">
+			Feedback Baru
+			<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+		</h2>
 		<textarea
 			id="feedback"
 			name="feedback"
@@ -268,25 +271,6 @@
 			placeholder="Masukkan URL"
 		/>
 	</div>
-	
-	<!-- Debug Section (only in development) -->
-	{#if import.meta.env.DEV}
-		<div class="p-4 bg-gray-100 rounded-lg">
-			<h3 class="text-sm font-semibold text-gray-600 mb-2">Debug Info</h3>
-			<div class="text-xs text-gray-500 space-y-1">
-				<p>Directus URL: {DIRECTUS_URL}</p>
-				<p>Token: {DIRECTUS_TOKEN ? '✓ Available' : '✗ Missing'}</p>
-				<p>Employee: {employee?.nama_karyawan || 'Not loaded'}</p>
-			</div>
-			<button
-				type="button"
-				on:click={testConnection}
-				class="mt-2 px-3 py-1 bg-gray-500 text-white rounded text-xs"
-			>
-				Test Connection
-			</button>
-		</div>
-	{/if}
 	
 	<button
 		type="submit"

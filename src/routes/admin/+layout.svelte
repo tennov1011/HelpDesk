@@ -23,7 +23,6 @@
 </script>
 
 <div class="flex h-screen overflow-hidden">
-	<Sidebar />
 	<div class="flex-1 flex flex-col overflow-hidden">
 		<Header employee={myEmployee} />
 		<main class="p-6 bg-gray-100 overflow-auto flex-1">
