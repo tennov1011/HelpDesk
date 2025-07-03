@@ -2,6 +2,7 @@
 	import { createEventDispatcher, onDestroy } from 'svelte';
 	import axios from 'axios';
 	import jsPDF from 'jspdf';
+	import { roleDefinitions } from '$lib/services/firebaseConfig.js';
 	export let tickets = [];
 	export let isAdmin = false; // <-- tambahkan ini
 	export let showNames = true;
@@ -33,6 +34,7 @@
 	let tempStatus = {};
 	let showSuccess = false;
 	let currentPage = 1;
+	let isLoadingChat = false; // State untuk loading chat admin
 
 	// Mobile-specific variables
 	let isMobile = false;
@@ -516,6 +518,100 @@
 		}
 	}
 
+	// Fungsi untuk mencari admin departemen dan membuka WhatsApp
+	async function openChatWithAdmin(ticket) {
+		isLoadingChat = true;
+		try {
+			console.log('Mencari admin untuk tiket:', ticket);
+
+			// Dapatkan departemen target dari tiket
+			const targetDepartment = ticket.target_department || ticket.department;
+			console.log('Target department:', targetDepartment);
+
+			if (!targetDepartment) {
+				alert('Departemen target tidak ditemukan dalam tiket');
+				return;
+			}
+
+			// Cari email admin berdasarkan departemen dari roleDefinitions
+			const adminDefinition = roleDefinitions.find(
+				(def) =>
+					def.role === 'admin' && def.department.toLowerCase() === targetDepartment.toLowerCase()
+			);
+			console.log('Admin definition found:', adminDefinition);
+
+			if (!adminDefinition) {
+				alert(`Admin untuk departemen ${targetDepartment} tidak ditemukan`);
+				return;
+			}
+
+			console.log('Mencari data karyawan dengan email:', adminDefinition.email);
+
+			// Ambil data karyawan dari database berdasarkan email admin
+			const response = await axios.get(
+				`${DIRECTUS_URL}/items/karyawan?filter[email_company][_eq]=${adminDefinition.email}`,
+				{
+					headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }
+				}
+			);
+
+			console.log('Response data karyawan:', response.data);
+
+			if (response.data.data.length === 0) {
+				alert(`Data karyawan dengan email ${adminDefinition.email} tidak ditemukan`);
+				return;
+			}
+
+			const adminEmployee = response.data.data[0];
+			const phoneNumber =
+				adminEmployee.no_hp ||
+				adminEmployee.phone ||
+				adminEmployee.telepon ||
+				adminEmployee.no_telepon;
+
+			console.log('Admin employee data:', adminEmployee);
+			console.log('Phone number found:', phoneNumber);
+
+			if (!phoneNumber) {
+				alert(`Nomor WhatsApp admin ${adminDefinition.department} tidak tersedia`);
+				return;
+			}
+
+			// Format nomor telepon (hapus karakter non-digit, tambahkan 62 jika dimulai dengan 0)
+			let formattedPhone = phoneNumber.replace(/\D/g, '');
+			if (formattedPhone.startsWith('0')) {
+				formattedPhone = '62' + formattedPhone.substring(1);
+			}
+			console.log('Formatted phone:', formattedPhone);
+
+			// Buat pesan WhatsApp dengan informasi tiket
+			const message = `Halo, saya memerlukan bantuan terkait tiket berikut:
+
+🎫 *ID Tiket:* ${ticket.id}
+👤 *Nama:* ${ticket.name}
+🏢 *Divisi:* ${ticket.division}
+📧 *Email:* ${ticket.email}
+📝 *Deskripsi:* ${ticket.desc || ticket.ticket}
+📊 *Status:* ${ticket.status}
+📅 *Tanggal:* ${formatDate(ticket.date)}
+
+Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
+
+			// Encode pesan untuk URL
+			const encodedMessage = encodeURIComponent(message);
+
+			// Buka WhatsApp dengan nomor dan pesan
+			const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+			console.log('Opening WhatsApp URL:', whatsappUrl);
+			window.open(whatsappUrl, '_blank');
+		} catch (error) {
+			console.error('Error opening WhatsApp chat:', error);
+			alert('Gagal membuka chat WhatsApp. Silakan coba lagi.');
+		} finally {
+			isLoadingChat = false;
+		}
+	}
+
 	// Desktop search filtering
 	$: desktopFiltered =
 		!isMobile && desktopSearchQuery
@@ -642,32 +738,6 @@
 					Clear
 				</button>
 			{/if}
-
-			<!-- Fitur Chat Admin -->
-			{#if !isAdmin}
-				<button
-					class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-semibold flex items-center gap-2 ml-auto"
-					title="Chat Admin"
-					aria-label="Buka Chat dengan Admin"
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-5 w-5"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-						/>
-					</svg>
-
-					Chat Admin
-				</button>
-			{/if}
 		</div>
 	</div>
 
@@ -718,6 +788,9 @@
 						<th class="rounded-r text-center">Aksi</th>
 					{:else}
 						<th class="rounded-r text-center">Tiket / Update</th>
+					{/if}
+					{#if !isAdmin}
+						<th class="rounded-r text-center">Chat Admin</th>
 					{/if}
 				</tr>
 			</thead>
@@ -929,6 +1002,53 @@
 											</svg>
 										</button>
 									{/if}
+								</div>
+							{/if}
+						</td>
+						<td class="text-center">
+							<!-- Fitur Chat Admin -->
+							{#if !isAdmin}
+								<div class="flex justify-center">
+									<button
+										class="p-1 hover:bg-green-50 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
+										title="Chat Admin"
+										aria-label="Buka Chat dengan Admin"
+										on:click={() => openChatWithAdmin(ticket)}
+										disabled={isLoadingChat}
+									>
+										{#if isLoadingChat}
+											<!-- Loading spinner -->
+											<svg
+												class="animate-spin h-5 w-5 text-gray-500"
+												xmlns="http://www.w3.org/2000/svg"
+												fill="none"
+												viewBox="0 0 24 24"
+											>
+												<circle
+													class="opacity-25"
+													cx="12"
+													cy="12"
+													r="10"
+													stroke="currentColor"
+													stroke-width="4"
+												></circle>
+												<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"
+												></path>
+											</svg>
+										{:else}
+											<!-- WhatsApp icon -->
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-5 w-5 text-green-600 hover:text-green-700"
+												fill="currentColor"
+												viewBox="0 0 24 24"
+											>
+												<path
+													d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"
+													/>
+											</svg>
+										{/if}
+									</button>
 								</div>
 							{/if}
 						</td>
