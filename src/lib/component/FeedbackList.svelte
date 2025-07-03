@@ -23,16 +23,6 @@
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
 
 	const dispatch = createEventDispatcher();
-	let showImageModal = false;
-	let showDetailModal = false;
-
-	function handleKeydown(event) {
-		if (event.key === 'Escape' && showImageModal) {
-			closeImageModal();
-		} else if (event.key === 'Escape' && showDetailModal) {
-			closeDetailModal();
-		}
-	}
 
 	async function deleteFeedback(id) {
 		if (!confirm('Yakin ingin menghapus feedback ini?')) return;
@@ -42,7 +32,6 @@
 			});
 			alert('Feedback berhasil dihapus.');
 			dispatch('deleted'); // Beritahu parent untuk fetch ulang
-			closeDetailModal && closeDetailModal(); // Tutup modal jika ada
 		} catch (e) {
 			alert('Gagal menghapus feedback.');
 		}
@@ -65,17 +54,6 @@
 			setTimeout(() => (notification = { show: false, type: '', message: '' }), 2000);
 		}
 	}
-
-	onMount(() => {
-		if (typeof window !== 'undefined') {
-			window.addEventListener('keydown', handleKeydown);
-		}
-	});
-	onDestroy(() => {
-		if (typeof window !== 'undefined') {
-			window.removeEventListener('keydown', handleKeydown);
-		}
-	});
 
 	function nextPage() {
 		if (currentPage < totalPages) currentPage += 1;
@@ -111,9 +89,8 @@
 					<th class="text-center">Divisi</th>
 				{/if}
 				<th class="text-center">Tanggal</th>
-				<th class="text-center">Lampiran</th>
 				<th class="text-center">Status</th>
-				<th class="rounded-r text-center">Feedback</th>
+				<th class="rounded-r text-center">Detail</th>
 				{#if showEdit}
 					<th class="text-center">Edit</th>
 				{/if}
@@ -133,29 +110,6 @@
 						<td class="text-center p-3">{fb.division}</td>
 					{/if}
 					<td class="text-center p-3">{fb.date}</td>
-					<td class="text-center p-3">
-						<div class="flex items-center justify-center">
-							{#if fb.photo_feedback}
-								<div class="bg-blue-100 border border-blue-200 rounded px-2 py-1">
-									<button
-										on:click={() =>
-											dispatch('openImageFeedback', {
-												url: fb.photo_feedback.startsWith('http')
-													? fb.photo_feedback
-													: `${DIRECTUS_URL}/assets/${fb.photo_feedback}`
-											})}
-										class="text-blue-600 hover:text-blue-800 font-bold"
-									>
-										Lihat File
-									</button>
-								</div>
-							{:else}
-								<div class="bg-gray-100 border border-gray-300 rounded px-2 py-1 text-gray-500">
-									Nothing
-								</div>
-							{/if}
-						</div>
-					</td>
 					<td class="text-center p-3">
 						{#if fb.status === 'Dibaca'}
 							<button
@@ -177,24 +131,32 @@
 					</td>
 					<td class="text-center">
 						<button
-							class="bg-blue-100 border border-blue-200 rounded px-2 py-1 text-blue-600 hover:text-blue-800 font-bold"
-							on:click={() => dispatch('openDetailFeedback', { text: fb.text })}
+							class="rounded p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 transition-colors"
+							on:click={() => dispatch('openDetailFeedback', { 
+								feedback: fb.text || fb.feedback,
+								url: fb.url,
+								photo_feedback: fb.photo_feedback,
+							})}
+							title="Detail Feedback"
 						>
-							Detail
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+							</svg>
 						</button>
 					</td>
 					{#if showEdit}
 						<td class="text-center">
 							<div class="flex items-center justify-center">
-								<div class="bg-red-100 border border-red-200 rounded px-2 py-1">
-									<button
-										class="text-red-600 hover:text-red-800 font-bold"
-										on:click={() => deleteFeedback(fb.rawId)}
-										disabled={isDeleting}
-									>
-										Delete
-									</button>
-								</div>
+								<button
+									class="rounded p-1.5 text-red-600 hover:text-red-800 hover:bg-red-100 transition-colors"
+									on:click={() => deleteFeedback(fb.rawId)}
+									disabled={isDeleting}
+									title="Delete Feedback"
+								>
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									</svg>
+								</button>
 							</div>
 						</td>
 					{/if}

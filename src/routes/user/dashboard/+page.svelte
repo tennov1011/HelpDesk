@@ -61,7 +61,7 @@
 					status: t.status,
 					target_department: t.target_department,
 					departure_time: t.departure_time,
-					estimated_return_time: t.estimated_return_time,
+					estimated_return_time: t.estimated_return_time
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);
@@ -85,6 +85,7 @@
 					text: fb.feedback,
 					division: fb.division,
 					name: fb.name,
+					url: fb.url,
 					email: fb.email,
 					file: fb.photo_feedback || '',
 					photo_feedback: fb.photo_feedback,
@@ -186,11 +187,30 @@
 	// Modal untuk detail feedback
 	let showDetailModalFeedback = false;
 	let detailTextFeedback = '';
-	// Handler untuk buka modal detail text feedback
+
 	function handleOpenDetailFeedback(e) {
-		detailTextFeedback = e.detail.text;
+		const { feedback, photo_feedback, url } = e.detail;
+
+		// Format konten untuk grid layout
+		let detailContent = `Feedback:\n${feedback || 'Tidak Ada Feedback'}`;
+
+		// Tambahkan URL dengan format yang sesuai untuk pemisahan di grid
+		detailContent += `\n\nURL:\n${url || 'Tidak ada URL'}`;
+
+		// Simpan untuk ditampilkan
+		detailTextFeedback = detailContent;
+
+		// Simpan URL gambar jika ada foto, atau set nilai untuk menunjukkan tidak ada lampiran
+		if (photo_feedback) {
+			imageUrlFeedback = `https://directus.eltamaprimaindo.com/assets/${photo_feedback}`;
+		} else {
+			imageUrlFeedback = ''; // Kosong untuk keperluan kondisi di tampilan
+		}
+
+		// Tampilkan modal detail
 		showDetailModalFeedback = true;
 	}
+
 	// Tutup modal detail text feedback
 	function closeDetailModalFeedback() {
 		showDetailModalFeedback = false;
@@ -312,7 +332,7 @@
 <!-- Conditional: Loading state saat autentikasi atau role checking belum selesai -->
 {#if !authReady || !roleReady}
 	<div class="flex items-center justify-center min-h-screen text-lg text-blue-700">Loading...</div>
-<!-- Conditional: Loading state saat data karyawan belum tersedia -->
+	<!-- Conditional: Loading state saat data karyawan belum tersedia -->
 {:else if !myEmployee}
 	<div class="flex items-center justify-center min-h-screen text-lg text-blue-700">
 		Memuat data karyawan...
@@ -593,35 +613,55 @@
 	</div>
 {/if}
 
-<!-- Conditional: Modal untuk detail text feedback -->
+<!-- Modal for feedback detail text display -->
 {#if showDetailModalFeedback}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+	<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-lg shadow-lg p-6 relative w-[90vw] max-w-4xl overflow-y-scroll flex flex-col items-center animate-fade-in-up"
-			style="max-height: 50vh"
-		>
-			<button
-				class="absolute top-4 right-6 text-gray-500 hover:text-red-600 text-3xl font-bold"
-				on:click={closeDetailModalFeedback}>&times;</button
-			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Feedback</h2>
-			<p class="text-gray-800 whitespace-pre-line text-justify">{detailTextFeedback}</p>
-		</div>
-	</div>
-{/if}
-
-<!-- Conditional: Modal untuk gambar lampiran feedback -->
-{#if showImageModalFeedback}
-	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
-		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
+			class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full relative flex flex-col items-start animate-fade-in-up"
+			style="max-height: 80vh; overflow-y-auto"
 		>
 			<button
 				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
-				on:click={closeImageFeedback}>&times;</button
+				on:click={closeDetailModalFeedback}>&times;</button
 			>
-			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran Feedback</h3>
-			<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
+			<h2 class="text-xl font-bold mb-4 text-blue-700 self-center">Detail Feedback</h2>
+
+			<!-- Grid layout untuk feedback dan URL -->
+			<div class="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+				<!-- Feedback column with vertical scrolling -->
+				<div class="bg-blue-100 rounded-lg p-2">
+					<h4 class="font-semibold text-blue-700 mb-1">Feedback</h4>
+					<div class="max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+						<p class="text-gray-800 whitespace-pre-line leading-relaxed">
+							{detailTextFeedback.split('\n\nURL:')[0].replace('Feedback:\n', '')}
+						</p>
+					</div>
+				</div>
+
+				<!-- URL column with vertical scrolling -->
+				<div class="bg-blue-50 rounded-lg p-2">
+					<h4 class="font-semibold text-blue-700 mb-1">URL</h4>
+					<div class="max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+						<p class="text-gray-800 whitespace-pre-line leading-relaxed break-all">
+							{detailTextFeedback.includes('URL:')
+								? detailTextFeedback.split('URL:\n')[1]
+								: 'Tidak ada URL'}
+						</p>
+					</div>
+				</div>
+			</div>
+
+			<!-- Lampiran section -->
+			<div class="w-full flex flex-col items-center mt-2 border-t pt-2">
+				<h3 class="text-lg font-semibold mb-2 text-blue-700 mt-2">Lampiran</h3>
+				{#if imageUrlFeedback}
+					<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
+						<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[40vh] max-w-full rounded" />
+					</div>
+				{:else}
+					<p class="text-gray-500 italic py-4">Lampiran tidak tersedia</p>
+				{/if}
+			</div>
 		</div>
 	</div>
 {/if}
@@ -650,5 +690,21 @@
 	}
 	.animate-fade-in-up {
 		animation: fade-in-up 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
+	}
+	
+	/* Custom scrollbar styling */
+	.custom-scrollbar::-webkit-scrollbar {
+		width: 6px;
+	}
+	.custom-scrollbar::-webkit-scrollbar-track {
+		background: rgba(241, 245, 249, 0.5);
+		border-radius: 10px;
+	}
+	.custom-scrollbar::-webkit-scrollbar-thumb {
+		background: #93c5fd;
+		border-radius: 10px;
+	}
+	.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+		background: #60a5fa;
 	}
 </style>

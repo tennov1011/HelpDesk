@@ -1,6 +1,7 @@
 <script>
 	import { createEventDispatcher, onDestroy } from 'svelte';
 	import axios from 'axios';
+	import jsPDF from 'jspdf';
 	export let tickets = [];
 	export let isAdmin = false; // <-- tambahkan ini
 	export let showNames = true;
@@ -17,8 +18,6 @@
 	let selectedTicket = null;
 	let detailFields = [];
 	let updatingStatusId = null;
-	let statusFilter = 'All';
-	let departmentFilter = 'All';
 	let isLoading = false;
 	let selectedPic = '';
 	let showUpdateModal = false;
@@ -42,6 +41,10 @@
 	let touchEndX = 0;
 	let isTouch = false;
 	let tableElement;
+
+	// Desktop search variables
+	let desktopSearchQuery = '';
+	let searchCriteria = 'all'; // all, id, name, division, priority, status, department
 
 	const DIRECTUS_URL = 'https://directus.eltamaprimaindo.com';
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
@@ -87,6 +90,16 @@
 		currentPage = 1; // Reset to first page when searching
 	}
 
+	function handleDesktopSearch(e) {
+		desktopSearchQuery = e.target.value.toLowerCase();
+		currentPage = 1; // Reset to first page when searching
+	}
+
+	function handleSearchCriteriaChange(e) {
+		searchCriteria = e.target.value;
+		currentPage = 1; // Reset to first page when criteria changes
+	}
+
 	// Initialize mobile detection
 	if (typeof window !== 'undefined') {
 		checkIfMobile();
@@ -100,18 +113,6 @@
 			window.removeEventListener('keydown', handleUpdateModalEsc);
 		}
 	});
-
-	
-
-	function handleStatusFilter(e) {
-		statusFilter = e.target.value;
-		currentPage = 1; // reset ke halaman pertama saat filter berubah
-	}
-
-	function handleDepartmentFilter(e) {
-		departmentFilter = e.target.value;
-		currentPage = 1;
-	}
 
 	function nextPage() {
 		if (currentPage < totalPages) currentPage += 1;
@@ -179,8 +180,24 @@
 				['divisi', ticket.division],
 				['email', ticket.email],
 				['kategori', ticket.category],
-				['jam keluar', ticket.departure_time ? new Date(ticket.departure_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'],
-				['estimasi jam kembali', ticket.estimated_return_time ? new Date(ticket.estimated_return_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-'],
+				[
+					'jam keluar',
+					ticket.departure_time
+						? new Date(ticket.departure_time).toLocaleTimeString('id-ID', {
+								hour: '2-digit',
+								minute: '2-digit'
+							})
+						: '-'
+				],
+				[
+					'estimasi jam kembali',
+					ticket.estimated_return_time
+						? new Date(ticket.estimated_return_time).toLocaleTimeString('id-ID', {
+								hour: '2-digit',
+								minute: '2-digit'
+							})
+						: '-'
+				],
 				['detail', ticket.ticket],
 				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
 				['PIC', ticket.pic]
@@ -349,29 +366,207 @@
 		}
 	}
 
-	$: filteredStatus =
-		statusFilter === 'All'
-			? tickets
-			: tickets.filter((t) => (t.status || '').toLowerCase() === statusFilter.toLowerCase());
+	// Fungsi export PDF untuk kategori Izin Keluar
+	function exportExitPermitPDF(ticket) {
+		if (!ticket || ticket.category?.toLowerCase() !== 'izin keluar') {
+			alert('Fungsi export PDF hanya tersedia untuk kategori Izin Keluar');
+			return;
+		}
 
-	$: filteredDepartment =
-		departmentFilter === 'All'
-			? filteredStatus
-			: filteredStatus.filter((t) => t.target_department === departmentFilter);
+		// Function to extract first name from full name
+		function getFirstName(fullName) {
+			if (!fullName) return '';
+			return fullName.split(' ')[0]; // Get first word/name
+		}
+
+		try {
+			// Create new PDF with A5 landscape format (210x148 mm)
+			const doc = new jsPDF({
+				orientation: 'landscape',
+				unit: 'mm',
+				format: 'a5'
+			});
+
+			// Set font
+			doc.setFont('helvetica');
+
+			// Header
+			doc.setFontSize(12); // Reduced for A5
+			doc.setFont('helvetica', 'bold');
+			doc.text('SURAT IZIN KELUAR', 105, 15, { align: 'center' });
+
+			// Garis bawah header
+			doc.setDrawColor(0, 0, 0);
+			doc.setLineWidth(0.5);
+			doc.line(15, 18, 195, 18);
+
+			// Reset font
+			doc.setFont('helvetica', 'normal');
+			doc.setFontSize(8); // Reduced font size for A5
+
+			// Informasi Perusahaan
+			doc.setFont('helvetica', 'bold');
+			doc.text('PT. ELTAMA PRIMA INDO', 15, 25);
+			doc.setFont('helvetica', 'normal');
+			doc.text(
+				'Jl. Nangka No.88, RW.3, Bojong Kulur, Kec. Gn. Putri, Kabupaten Bogor, Jawa Barat 16969',
+				15,
+				30
+			);
+			doc.text('Telp: (021) 827 45', 15, 35);
+
+			// Tanggal surat
+			const currentDate = new Date().toLocaleDateString('id-ID', {
+				day: 'numeric',
+				month: 'long',
+				year: 'numeric'
+			});
+			doc.text(`Jakarta, ${currentDate}`, 150, 25);
+
+			// Konten surat
+			let yPos = 40;
+
+			doc.text('Yang bertanda tangan di bawah ini:', 15, yPos);
+			yPos += 6;
+
+			// Data karyawan
+			doc.text(`Nama               : ${ticket.name || '-'}`, 25, yPos);
+			yPos += 5;
+			doc.text(`Divisi             : ${ticket.division || '-'}`, 25, yPos);
+			yPos += 5;
+			doc.text(`Email              : ${ticket.email || '-'}`, 25, yPos);
+			yPos += 8;
+
+			doc.text('Dengan ini mengajukan izin keluar dengan rincian sebagai berikut:', 15, yPos);
+			yPos += 6;
+
+			// Detail izin keluar
+			const departureTime = ticket.departure_time
+				? new Date(ticket.departure_time).toLocaleTimeString('id-ID', {
+						hour: '2-digit',
+						minute: '2-digit'
+					})
+				: '-';
+
+			const returnTime = ticket.estimated_return_time
+				? new Date(ticket.estimated_return_time).toLocaleTimeString('id-ID', {
+						hour: '2-digit',
+						minute: '2-digit'
+					})
+				: '-';
+
+			doc.text(`Jam Keluar         : ${departureTime}`, 25, yPos);
+			yPos += 5;
+			doc.text(`Estimasi Jam Kembali : ${returnTime}`, 25, yPos);
+			yPos += 5;
+			doc.text(`Keperluan          : ${ticket.ticket || '-'}`, 25, yPos);
+			yPos += 8;
+
+			// Tanda tangan
+			doc.text('Hormat kami,', 15, yPos);
+			yPos += 10;
+
+			// Kolom tanda tangan - layout baru dengan 4 kolom untuk A5 landscape
+			// Kolom 1: Yang Mengajukan (Karyawan)
+			doc.text('Yang Mengajukan,', 25, yPos);
+
+			// Kolom 2: Atasan Divisi
+			doc.text('Atasan Divisi,', 75, yPos);
+
+			// Kolom 3: HRD
+			doc.text('HRD,', 125, yPos);
+
+			// Kolom 4: Security
+			doc.text('Security,', 175, yPos);
+
+			yPos += 14; // Spasi untuk tanda tangan
+
+			// Get first name for the signature
+			const firstName = getFirstName(ticket.name);
+
+			// Nama-nama di bawah garis tanda tangan (hanya nama depan untuk pemohon)
+			doc.text(`(${firstName || '..................'})`, 25, yPos);
+			doc.text('(....................)', 75, yPos);
+			doc.text('(....................)', 125, yPos);
+			doc.text('(....................)', 175, yPos);
+
+			yPos += 5;
+
+			// Label posisi/jabatan
+			doc.setFontSize(7);
+			doc.text('Karyawan', 25, yPos);
+			doc.text('Menyetujui', 75, yPos);
+			doc.text('Mengetahui', 125, yPos);
+			doc.text('Pemeriksaan', 175, yPos);
+
+			// Footer
+			doc.setFontSize(6);
+			doc.text(`Dokumen ID: ${ticket.id}`, 15, 130);
+			doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 15, 134);
+
+			// Simpan PDF
+			const fileName = `Izin_Keluar_${firstName?.replace(/\s+/g, '_') || 'Unknown'}_${ticket.id}.pdf`;
+			doc.save(fileName);
+
+			// Show success message
+			alert('PDF berhasil di-download!');
+		} catch (error) {
+			console.error('Error generating PDF:', error);
+			alert('Gagal membuat PDF. Silakan coba lagi.');
+		}
+	}
+
+	// Desktop search filtering
+	$: desktopFiltered =
+		!isMobile && desktopSearchQuery
+			? tickets.filter((t) => {
+					const query = desktopSearchQuery.toLowerCase();
+
+					if (searchCriteria === 'all') {
+						return (
+							(t.id || '').toString().toLowerCase().includes(query) ||
+							(t.name || '').toLowerCase().includes(query) ||
+							(t.division || '').toLowerCase().includes(query) ||
+							(t.priority || '').toLowerCase().includes(query) ||
+							(t.status || '').toLowerCase().includes(query) ||
+							(t.target_department || '').toLowerCase().includes(query) ||
+							(t.desc || '').toLowerCase().includes(query)
+						);
+					} else if (searchCriteria === 'id') {
+						return (t.id || '').toString().toLowerCase().includes(query);
+					} else if (searchCriteria === 'name') {
+						return (t.name || '').toLowerCase().includes(query);
+					} else if (searchCriteria === 'division') {
+						return (t.division || '').toLowerCase().includes(query);
+					} else if (searchCriteria === 'priority') {
+						return (t.priority || '').toLowerCase().includes(query);
+					} else if (searchCriteria === 'status') {
+						return (t.status || '').toLowerCase().includes(query);
+					} else if (searchCriteria === 'department') {
+						return (t.target_department || '').toLowerCase().includes(query);
+					}
+					return true;
+				})
+			: tickets;
 
 	// Mobile search filtering
-	$: mobileFiltered = isMobile && mobileSearchQuery
-		? filteredDepartment.filter((t) => {
-			const query = mobileSearchQuery.toLowerCase();
-			return (
-				(t.status || '').toLowerCase().includes(query) ||
-				(t.target_department || '').toLowerCase().includes(query) ||
-				(t.desc || '').toLowerCase().includes(query)
-			);
-		})
-		: filteredDepartment;
+	$: mobileFiltered =
+		isMobile && mobileSearchQuery
+			? tickets.filter((t) => {
+					const query = mobileSearchQuery.toLowerCase();
+					return (
+						(t.status || '').toLowerCase().includes(query) ||
+						(t.target_department || '').toLowerCase().includes(query) ||
+						(t.desc || '').toLowerCase().includes(query) ||
+						(t.id || '').toString().toLowerCase().includes(query) ||
+						(t.name || '').toLowerCase().includes(query) ||
+						(t.division || '').toLowerCase().includes(query) ||
+						(t.priority || '').toLowerCase().includes(query)
+					);
+				})
+			: tickets;
 
-	$: filteredTickets = mobileFiltered;
+	$: filteredTickets = isMobile ? mobileFiltered : desktopFiltered;
 
 	$: totalPages = Math.ceil(filteredTickets.length / rowsPerPage);
 	$: paginatedTickets = filteredTickets.slice(
@@ -386,7 +581,7 @@
 		<div class="mb-4 md:hidden">
 			<input
 				type="text"
-				placeholder="Cari berdasarkan status, departemen, atau deskripsi..."
+				placeholder="Cari berdasarkan ID, nama, divisi, prioritas, status, departemen, atau deskripsi..."
 				class="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
 				bind:value={mobileSearchQuery}
 				on:input={handleMobileSearch}
@@ -394,34 +589,86 @@
 		</div>
 	{/if}
 
-	<!-- Desktop Filters (hidden on mobile) -->
-	<div class="flex justify-end mb-1 gap-2 md:flex hidden">
-		<!-- Filter Status -->
-		<select
-			class="border-2 rounded px-3 py-1 text-sm focus:ring focus:ring-blue-200 text-black-700 font-semibold"
-			bind:value={statusFilter}
-			on:change={handleStatusFilter}
-		>
-			<option value="All">Status</option>
-			<option value="Pending">Pending</option>
-			<option value="On Progress">On Progress</option>
-			<option value="Done">Done</option>
-			<option value="Rejected">Rejected</option>
-		</select>
-
-		<!-- Filter Department -->
-		{#if !isAdmin}
+	<!-- Desktop Search Bar -->
+	<div class="mb-4 hidden md:block">
+		<!-- Search Section -->
+		<div class="flex gap-2 mb-3">
+			<!-- Search Criteria Selector -->
 			<select
-				class="border-2 rounded px-3 py-1 text-sm focus:ring focus:ring-blue-200 text-black-700 font-semibold"
-				bind:value={departmentFilter}
-				on:change={handleDepartmentFilter}
+				class="border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-gray-700 font-semibold min-w-[140px]"
+				bind:value={searchCriteria}
+				on:change={handleSearchCriteriaChange}
 			>
-				<option value="All">Departemen</option>
-				{#each Array.from(new Set(tickets.map((t) => t.target_department).filter(Boolean))) as dept}
-					<option value={dept}>{dept}</option>
-				{/each}
+				<option value="all">Semua Field</option>
+				<option value="id">ID Tiket</option>
+				<option value="name">Nama</option>
+				<option value="division">Divisi</option>
+				<option value="priority">Prioritas</option>
+				<option value="status">Status</option>
+				<option value="department">Departemen</option>
 			</select>
-		{/if}
+
+			<!-- Search Input -->
+			<input
+				type="text"
+				placeholder={searchCriteria === 'all'
+					? 'Cari berdasarkan semua field...'
+					: searchCriteria === 'id'
+						? 'Cari berdasarkan ID tiket...'
+						: searchCriteria === 'name'
+							? 'Cari berdasarkan nama...'
+							: searchCriteria === 'division'
+								? 'Cari berdasarkan divisi...'
+								: searchCriteria === 'priority'
+									? 'Cari berdasarkan prioritas...'
+									: searchCriteria === 'status'
+										? 'Cari berdasarkan status...'
+										: 'Cari berdasarkan departemen...'}
+				class="w-80 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+				bind:value={desktopSearchQuery}
+				on:input={handleDesktopSearch}
+			/>
+
+			<!-- Clear Search Button -->
+			{#if desktopSearchQuery}
+				<button
+					class="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition text-sm font-semibold"
+					on:click={() => {
+						desktopSearchQuery = '';
+						currentPage = 1;
+					}}
+					title="Clear Search"
+				>
+					Clear
+				</button>
+			{/if}
+
+			<!-- Fitur Chat Admin -->
+			{#if !isAdmin}
+				<button
+					class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-semibold flex items-center gap-2 ml-auto"
+					title="Chat Admin"
+					aria-label="Buka Chat dengan Admin"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-5 w-5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+						/>
+					</svg>
+
+					Chat Admin
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Table with touch events for mobile swipe -->
@@ -438,7 +685,7 @@
 				<tr class="bg-blue-100">
 					<!-- Always show ID -->
 					<th class="p-2 rounded-l text-center">ID</th>
-					
+
 					<!-- Desktop columns (hidden on mobile) -->
 					{#if showNames}
 						<th class="text-center hidden md:table-cell">Nama</th>
@@ -446,12 +693,12 @@
 					{#if showDivisions}
 						<th class="text-center hidden md:table-cell">Divisi</th>
 					{/if}
-					
+
 					<!-- Always show Description -->
 					{#if showDescription}
 						<th class="text-center">Deskripsi</th>
 					{/if}
-					
+
 					<!-- Desktop columns (hidden on mobile) -->
 					{#if showPriority}
 						<th class="text-center hidden md:table-cell">Prioritas</th>
@@ -462,10 +709,10 @@
 					{#if showDepartments}
 						<th class="text-center hidden md:table-cell">Departemen</th>
 					{/if}
-					
+
 					<!-- Always show Status -->
 					<th class="text-center">Status</th>
-					
+
 					<!-- Always show Action column -->
 					{#if isAdmin}
 						<th class="rounded-r text-center">Aksi</th>
@@ -482,7 +729,7 @@
 					>
 						<!-- Always show ID -->
 						<td class="p-2 font-semibold text-blue-700 text-center">{ticket.id}</td>
-						
+
 						<!-- Desktop columns (hidden on mobile) -->
 						{#if showNames}
 							<td class="text-center hidden md:table-cell">{ticket.name}</td>
@@ -490,16 +737,16 @@
 						{#if showDivisions}
 							<td class="text-center hidden md:table-cell">{ticket.division}</td>
 						{/if}
-						
+
 						<!-- Always show Description -->
 						{#if showDescription}
 							<td class="text-center">
 								<!-- <div class="max-w-xs truncate" title={ticket.desc}> -->
-									{ticket.desc}
+								{ticket.desc}
 								<!-- </div> -->
 							</td>
 						{/if}
-						
+
 						<!-- Desktop columns (hidden on mobile) -->
 						{#if showPriority}
 							<td class="text-center hidden md:table-cell">{ticket.priority}</td>
@@ -510,7 +757,7 @@
 						{#if showDepartments}
 							<td class="text-center hidden md:table-cell">{ticket.target_department}</td>
 						{/if}
-						
+
 						<!-- Always show Status -->
 						<td class="text-center">
 							{#if isAdmin}
@@ -538,18 +785,61 @@
 								</span>
 							{/if}
 						</td>
-						
+
 						<!-- Always show Action column -->
 						<td class="text-center">
 							{#if isAdmin}
-								<button
-									class="text-blue-500 font-bold transition text-x mr-2 hover:underline"
-									on:click={() => openDetail(ticket)}
-								>
-									Detail
-								</button>
+								<div class="flex items-center justify-center gap-2">
+									<!-- Detail button with icon -->
+									<button
+										class="text-blue-600 hover:text-blue-800 transition p-1 rounded-full hover:bg-blue-50"
+										on:click={() => openDetail(ticket)}
+										title="Lihat Detail"
+										aria-label="Lihat Detail"
+									>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											class="h-5 w-5"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+											stroke-width="2"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+											/>
+										</svg>
+									</button>
+									/
+									<!-- Export PDF button for Izin Keluar category -->
+									{#if ticket.category?.toLowerCase() === 'izin keluar'}
+										<button
+											class="text-green-600 hover:text-green-800 transition p-1 rounded-full hover:bg-green-50"
+											on:click={() => exportExitPermitPDF(ticket)}
+											title="Export PDF Surat Izin Keluar"
+											aria-label="Export PDF"
+										>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												class="h-5 w-5"
+												fill="none"
+												viewBox="0 0 24 24"
+												stroke="currentColor"
+												stroke-width="2"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+												/>
+											</svg>
+										</button>
+									{/if}
+								</div>
 							{:else}
-								<!-- Container untuk 3 item: Detail, Separator, Update -->
+								<!-- Container untuk item: Detail, Separator, Update, dan PDF -->
 								<div class="flex items-center justify-center gap-1 md:gap-2">
 									<!-- Button Detail -->
 									<button
@@ -565,7 +855,8 @@
 											viewBox="0 0 24 24"
 											stroke-width="2.5"
 										>
-											<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2.5"></circle>
+											<circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2.5"
+											></circle>
 											<path
 												d="m21 21-4.35-4.35"
 												stroke="currentColor"
@@ -610,6 +901,34 @@
 											/>
 										</svg>
 									</button>
+
+									<!-- Export PDF button untuk kategori Izin Keluar (User) -->
+									{#if ticket.category?.toLowerCase() === 'izin keluar'}
+										<!-- Separator -->
+										<span class="text-gray-400 text-sm">/</span>
+
+										<!-- Button Export PDF -->
+										<button
+											class="text-green-600 hover:text-green-800 transition p-1 md:p-2 hover:bg-green-50 rounded-full"
+											on:click={() => exportExitPermitPDF(ticket)}
+											title="Download PDF Surat Izin Keluar"
+											aria-label="Export PDF Surat Izin Keluar"
+										>
+											<svg
+												class="w-4 h-4 md:w-5 md:h-5"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+												stroke-width="2"
+											>
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+												/>
+											</svg>
+										</button>
+									{/if}
 								</div>
 							{/if}
 						</td>
@@ -808,11 +1127,12 @@
 		table {
 			font-size: 0.875rem;
 		}
-		
-		th, td {
+
+		th,
+		td {
 			padding: 0.5rem 0.25rem !important;
 		}
-		
+
 		.max-w-xs {
 			max-width: 120px;
 		}
