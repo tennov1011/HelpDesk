@@ -456,47 +456,47 @@
 {#if showDetailModal && selectedTicket}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8 relative animate-fade-in-up max-h-[90vh] overflow-y-auto"
+			class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-2xl p-4 md:p-8 relative animate-fade-in-up max-h-[95vh] overflow-y-auto"
 		>
 			<button
-				class="absolute top-4 right-6 text-2xl text-gray-400 hover:text-red-500 transition"
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-red-500 transition"
 				on:click={closeDetailModal}
 				aria-label="Tutup"
 			>
 				&times;
 			</button>
-			<h2 class="text-xl font-extrabold mb-6 text-blue-700 text-center drop-shadow">
+			<h2 class="text-lg md:text-xl font-extrabold mb-4 md:mb-6 text-blue-700 text-center drop-shadow">
 				Detail Tiket - {selectedTicket.id}
 			</h2>
-			<div class="space-y-4">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-					<div class="font-semibold text-gray-600">Nama:</div>
-					<div class="text-gray-800">{selectedTicket.name}</div>
+			<div class="space-y-3">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-1 md:gap-y-2">
+					<div class="font-semibold text-gray-600 text-sm md:text-base">Nama:</div>
+					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.name}</div>
 
-					<div class="font-semibold text-gray-600">Kategori:</div>
-					<div class="text-gray-800">{selectedTicket.category}</div>
+					<div class="font-semibold text-gray-600 text-sm md:text-base">Kategori:</div>
+					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.category}</div>
 
-					<div class="font-semibold text-gray-600">Departemen Tujuan:</div>
-					<div class="text-gray-800">{selectedTicket.target_department}</div>
+					<div class="font-semibold text-gray-600 text-sm md:text-base">Departemen Tujuan:</div>
+					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.target_department}</div>
 
-					<div class="font-semibold text-gray-600">Status:</div>
-					<div class="text-gray-800">{selectedTicket.status}</div>
+					<div class="font-semibold text-gray-600 text-sm md:text-base">Status:</div>
+					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.status}</div>
 
-					<div class="font-semibold text-gray-600">Tanggal Dibuat:</div>
-					<div class="text-gray-800">{new Date(selectedTicket.date).toLocaleString('id-ID')}</div>
+					<div class="font-semibold text-gray-600 text-sm md:text-base">Tanggal Dibuat:</div>
+					<div class="text-gray-800 text-sm md:text-base">{new Date(selectedTicket.date).toLocaleString('id-ID')}</div>
 				</div>
 
-				<div class="mt-4">
-					<div class="font-semibold text-gray-600 mb-2">Deskripsi Masalah:</div>
-					<div class="text-gray-800 whitespace-pre-line bg-gray-50 p-3 rounded border">
+				<div class="mt-3">
+					<div class="font-semibold text-gray-600 mb-1 md:mb-2 text-sm md:text-base">Deskripsi Masalah:</div>
+					<div class="text-gray-800 whitespace-pre-line bg-gray-50 p-2 md:p-3 rounded border text-sm md:text-base">
 						{selectedTicket.ticket}
 					</div>
 				</div>
 
 				<!-- Conditional: Tampilkan lampiran jika ada -->
 				{#if selectedTicket.photo_ticket}
-					<div class="mt-4">
-						<div class="font-semibold text-gray-600 mb-2">Lampiran:</div>
+					<div class="mt-3">
+						<div class="font-semibold text-gray-600 mb-1 md:mb-2 text-sm md:text-base">Lampiran:</div>
 						<img
 							src="https://directus.eltamaprimaindo.com/assets/{selectedTicket.photo_ticket}"
 							alt="Lampiran tiket"
@@ -512,9 +512,9 @@
 				{/if}
 			</div>
 
-			<div class="flex justify-end mt-8">
+			<div class="flex justify-end mt-4 md:mt-8">
 				<button
-					class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold"
+					class="px-4 md:px-6 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold text-sm md:text-base"
 					on:click={closeDetailModal}
 				>
 					Tutup
@@ -527,41 +527,41 @@
 <!-- Conditional: Modal untuk riwayat update tiket -->
 {#if showUpdateDetailModal}
 	<div class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-8 relative animate-fade-in-up">
+		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-xl p-4 md:p-8 relative animate-fade-in-up">
 			<button
-				class="absolute top-4 right-6 text-2xl text-gray-400 hover:text-red-500 transition"
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-red-500 transition"
 				on:click={closeTicketUpdateDetail}
 				aria-label="Tutup"
 			>
 				&times;
 			</button>
-			<h2 class="text-xl font-extrabold mb-6 text-blue-700 text-center drop-shadow">
+			<h2 class="text-lg md:text-xl font-extrabold mb-4 md:mb-6 text-blue-700 text-center drop-shadow">
 				Track Ticket
 			</h2>
 			<!-- Conditional: Tampilkan daftar update atau empty state -->
 			{#if selectedTicketUpdates.length > 0}
-				<div class="space-y-6 max-h-96 overflow-y-auto pr-2">
+				<div class="space-y-4 md:space-y-6 max-h-[70vh] md:max-h-96 overflow-y-auto pr-2">
 					{#each [...selectedTicketUpdates].sort((a, b) => new Date(b.date) - new Date(a.date)) as update, idx}
-						<div class="border-b pb-4">
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-2">
-								<div class="font-semibold text-gray-600">Tanggal Update:</div>
-								<div class="text-gray-800">{formatDate(update.date)}</div>
+						<div class="border-b pb-3 md:pb-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-1 md:gap-y-2 mb-2">
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Tanggal Update:</div>
+								<div class="text-gray-800 text-sm md:text-base">{formatDate(update.date)}</div>
 
-								<div class="font-semibold text-gray-600">Deskripsi:</div>
-								<div class="text-gray-800">{update.description}</div>
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Deskripsi:</div>
+								<div class="text-gray-800 text-sm md:text-base">{update.description}</div>
 
-								<div class="font-semibold text-gray-600">PIC:</div>
-								<div class="text-gray-800">{update.pic}</div>
+								<div class="font-semibold text-gray-600 text-sm md:text-base">PIC:</div>
+								<div class="text-gray-800 text-sm md:text-base">{update.pic}</div>
 
-								<div class="font-semibold text-gray-600">Status:</div>
-								<div class="text-gray-800">{update.status}</div>
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Status:</div>
+								<div class="text-gray-800 text-sm md:text-base">{update.status}</div>
 
-								<div class="font-semibold text-gray-600">Lampiran:</div>
-								<div class="text-gray-800">
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Lampiran:</div>
+								<div class="text-gray-800 text-sm md:text-base">
 									<!-- Conditional: Tampilkan link file atau pesan tidak ada -->
 									{#if update.attachment}
 										<button
-											class="text-blue-600 text-s font-semibold mt-1"
+											class="text-blue-600 text-xs md:text-sm font-semibold mt-1 px-2 py-0.5 bg-blue-50 rounded hover:bg-blue-100"
 											on:click={() => {
 												let url = update.attachment;
 												if (url && !url.startsWith('http')) {
@@ -573,7 +573,7 @@
 											Lihat File
 										</button>
 									{:else}
-										<span class="text-gray-500">Tidak ada lampiran</span>
+										<span class="text-gray-500 text-xs md:text-sm">Tidak ada lampiran</span>
 									{/if}
 								</div>
 							</div>
@@ -581,13 +581,13 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="text-center text-gray-500 text-base py-8">
+				<div class="text-center text-gray-500 text-sm md:text-base py-4 md:py-8">
 					Tidak ada riwayat update untuk tiket ini.
 				</div>
 			{/if}
-			<div class="flex justify-end mt-8">
+			<div class="flex justify-end mt-4 md:mt-8">
 				<button
-					class="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold"
+					class="px-4 md:px-6 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold text-sm md:text-base"
 					on:click={closeTicketUpdateDetail}
 				>
 					Tutup
@@ -601,13 +601,13 @@
 {#if showUpdateImageModal}
 	<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[70vh]"
+			class="bg-white rounded-xl shadow-2xl p-3 md:p-6 max-w-[95vw] md:max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[80vh] md:h-[70vh]"
 		>
 			<button
-				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-600 hover:text-red-600"
 				on:click={closeUpdateImageModal}>&times;</button
 			>
-			<h3 class="text-lg font-bold mb-4 text-blue-700">Lampiran</h3>
+			<h3 class="text-base md:text-lg font-bold mb-2 md:mb-4 text-blue-700">Lampiran</h3>
 			<img src={updateImageUrl} alt="Lampiran" class="max-h-[60vh] max-w-full rounded border" />
 		</div>
 	</div>
@@ -617,22 +617,22 @@
 {#if showDetailModalFeedback}
 	<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full relative flex flex-col items-start animate-fade-in-up"
-			style="max-height: 80vh; overflow-y-auto"
+			class="bg-white rounded-xl shadow-2xl p-3 md:p-6 max-w-[95vw] md:max-w-4xl w-full relative flex flex-col items-start animate-fade-in-up"
+			style="max-height: 90vh; overflow-y-auto"
 		>
 			<button
-				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-600 hover:text-red-600"
 				on:click={closeDetailModalFeedback}>&times;</button
 			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700 self-center">Detail Feedback</h2>
+			<h2 class="text-lg md:text-xl font-bold mb-3 md:mb-4 text-blue-700 self-center">Detail Feedback</h2>
 
 			<!-- Grid layout untuk feedback dan URL -->
 			<div class="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
 				<!-- Feedback column with vertical scrolling -->
 				<div class="bg-blue-100 rounded-lg p-2">
-					<h4 class="font-semibold text-blue-700 mb-1">Feedback</h4>
-					<div class="max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-						<p class="text-gray-800 whitespace-pre-line leading-relaxed">
+					<h4 class="font-semibold text-blue-700 mb-1 text-sm md:text-base">Feedback</h4>
+					<div class="max-h-[150px] md:max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+						<p class="text-gray-800 whitespace-pre-line leading-relaxed text-sm md:text-base">
 							{detailTextFeedback.split('\n\nURL:')[0].replace('Feedback:\n', '')}
 						</p>
 					</div>
@@ -640,9 +640,9 @@
 
 				<!-- URL column with vertical scrolling -->
 				<div class="bg-blue-50 rounded-lg p-2">
-					<h4 class="font-semibold text-blue-700 mb-1">URL</h4>
-					<div class="max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-						<p class="text-gray-800 whitespace-pre-line leading-relaxed break-all">
+					<h4 class="font-semibold text-blue-700 mb-1 text-sm md:text-base">URL</h4>
+					<div class="max-h-[150px] md:max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+						<p class="text-gray-800 whitespace-pre-line leading-relaxed break-all text-sm md:text-base">
 							{detailTextFeedback.includes('URL:')
 								? detailTextFeedback.split('URL:\n')[1]
 								: 'Tidak ada URL'}
@@ -653,13 +653,13 @@
 
 			<!-- Lampiran section -->
 			<div class="w-full flex flex-col items-center mt-2 border-t pt-2">
-				<h3 class="text-lg font-semibold mb-2 text-blue-700 mt-2">Lampiran</h3>
+				<h3 class="text-base md:text-lg font-semibold mb-1 md:mb-2 text-blue-700 mt-1 md:mt-2">Lampiran</h3>
 				{#if imageUrlFeedback}
 					<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-						<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[40vh] max-w-full rounded" />
+						<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[30vh] md:max-h-[40vh] max-w-full rounded" />
 					</div>
 				{:else}
-					<p class="text-gray-500 italic py-4">Lampiran tidak tersedia</p>
+					<p class="text-gray-500 italic py-2 md:py-4 text-sm md:text-base">Lampiran tidak tersedia</p>
 				{/if}
 			</div>
 		</div>

@@ -1111,62 +1111,62 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 {#if showUpdateModal}
 	<!-- Modal Update Tiket -->
 	<div class="fixed inset-0 flex items-center justify-center z-50">
-		<div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-4">
-			<div class="flex justify-between items-center mb-4">
+		<div class="bg-white rounded-lg shadow-lg w-full max-w-[95vw] md:max-w-2xl p-3 max-h-[95vh] overflow-y-auto">
+			<div class="flex justify-between items-center mb-3">
 				<h2 class="text-xl font-semibold">Update Tiket</h2>
-				<button class="text-gray-500 hover:text-gray-700" on:click={closeUpdateModal}>
+				<button class="w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-500 hover:text-gray-700" on:click={closeUpdateModal}>
 					&times;
 				</button>
 			</div>
-			<div class="mb-4">
+			<div class="mb-2">
 				<label for="update-date" class="block text-sm font-medium text-gray-700 mb-1">
 					Tanggal
 				</label>
 				<input
 					id="update-date"
 					type="date"
-					class="border rounded px-3 py-2 w-full text-sm"
+					class="border rounded px-2 py-1 w-full text-sm"
 					bind:value={updateForm.date}
 				/>
 			</div>
-			<div class="mb-4">
+			<div class="mb-2">
 				<label for="update-description" class="block text-sm font-medium text-gray-700 mb-1">
 					Deskripsi
 				</label>
 				<textarea
 					id="update-description"
-					class="border rounded px-3 py-2 w-full text-sm"
+					class="border rounded px-2 py-1 w-full text-sm"
 					bind:value={updateForm.description}
 				></textarea>
 			</div>
-			<div class="mb-4">
+			<div class="mb-2">
 				<label for="update-attachment" class="block text-sm font-medium text-gray-700 mb-1">
 					Lampiran
 				</label>
 				<input
 					id="update-attachment"
 					type="file"
-					class="border rounded px-3 py-2 w-full text-sm"
+					class="border rounded px-2 py-1 w-full text-sm"
 					accept="image/*"
 					on:change={(e) => (updateForm.attachment = e.target.files[0])}
 				/>
 			</div>
-			<div class="mb-4">
+			<div class="mb-2">
 				<label for="update-pic" class="block text-sm font-medium text-gray-700 mb-1"> PIC </label>
 				<input
 					id="update-pic"
 					type="text"
-					class="border rounded px-3 py-2 w-full text-sm"
+					class="border rounded px-2 py-1 w-full text-sm"
 					bind:value={updateForm.pic}
 				/>
 			</div>
-			<div class="mb-4">
+			<div class="mb-2">
 				<label for="update-status" class="block text-sm font-medium text-gray-700 mb-1">
 					Status
 				</label>
 				<select
 					id="update-status"
-					class="border rounded px-3 py-2 w-full text-sm"
+					class="border rounded px-2 py-1 w-full text-sm"
 					bind:value={updateForm.status}
 				>
 					<option value="Pending">Pending</option>
@@ -1175,9 +1175,9 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 					<option value="Rejected">Rejected</option>
 				</select>
 			</div>
-			<div class="flex justify-end gap-2">
+			<div class="flex justify-end gap-2 mt-4">
 				<button
-					class="px-4 py-2 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition"
+					class="px-3 py-1.5 bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition text-sm"
 					on:click={submitUpdateStatus}
 					disabled={isLoading}
 				>
@@ -1188,7 +1188,7 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 					{/if}
 				</button>
 				<button
-					class="px-4 py-2 bg-gray-300 text-gray-700 rounded shadow hover:bg-gray-400 transition"
+					class="px-3 py-1.5 bg-gray-300 text-gray-700 rounded shadow hover:bg-gray-400 transition text-sm"
 					on:click={closeUpdateModal}
 					disabled={isLoading}
 				>
@@ -1255,6 +1255,21 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 
 		.max-w-xs {
 			max-width: 120px;
+		}
+		
+		/* Form controls in modals */
+		input, select, textarea {
+			font-size: 14px !important;
+			padding: 4px 8px !important;
+		}
+		
+		/* Modal header and spacing */
+		.modal-header {
+			margin-bottom: 0.5rem !important;
+		}
+		
+		.modal-body {
+			padding: 0.5rem !important;
 		}
 	}
 </style>

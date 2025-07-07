@@ -184,7 +184,7 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
 		<div class="flex flex-col items-center">
 			<svg
-				class="animate-spin h-12 w-12 text-blue-600 mb-4"
+				class="animate-spin h-6 w-6 sm:h-12 sm:w-12 text-blue-600 mb-2 sm:mb-4"
 				xmlns="http://www.w3.org/2000/svg"
 				fill="none"
 				viewBox="0 0 24 24"
@@ -193,7 +193,7 @@
 				></circle>
 				<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
 			</svg>
-			<span class="text-white text-lg font-semibold">Mengirim feedback...</span>
+			<span class="text-white text-sm sm:text-lg font-semibold">Mengirim feedback...</span>
 		</div>
 	</div>
 {/if}
@@ -201,7 +201,7 @@
 {#if $notification.show}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
 		<div
-			class="px-6 py-3 rounded-lg shadow-lg font-semibold text-white text-center transition-all duration-300"
+			class="px-2 py-1 sm:px-6 sm:py-3 rounded shadow-lg font-semibold text-white text-center transition-all duration-300 text-xs sm:text-base"
 			class:bg-green-500={$notification.type === 'success'}
 			class:bg-red-500={$notification.type === 'error'}
 			class:animate-bounce={$notification.type === 'success'}
@@ -211,76 +211,103 @@
 	</div>
 {/if}
 
-<form
-	on:submit={handleSubmit}
-	class="p-8 space-y-6 bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-auto"
->
-	<div>
-		<h2 class="text-lg font-semibold text-gray-700 border-b pb-2 flex items-center gap-1">
-			Feedback Baru
-			<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
-		</h2>
-		<textarea
-			id="feedback"
-			name="feedback"
-			bind:value={feedback}
-			rows="4"
-			placeholder="Tuliskan feedback Anda di sini..."
-			class="mt-3 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 outline-none transition"
-		></textarea>
-	</div>
-	<!-- Lampiran/Screenshot -->
-	<div>
-		<label for="photo_feedback" class="block font-semibold mb-2">Lampiran/Screenshot</label>
-		<input
-			id="photo_feedback"
-			type="file"
-			multiple
-			on:change={(e) => {
-				photo_feedback = Array.from(e.target.files);
-			}}
-			accept=".png, .jpg, .jpeg, .gif, .image, .webp, .svg"
-			class="w-full px-4 py-2 border rounded-lg"
-		/>
-	</div>
-	<div>
-		<h2 class="text-lg font-semibold text-gray-700 border-b pb-2">Rating Website (Opsional)</h2>
-		<select
-			id="rating"
-			name="rating"
-			bind:value={rating}
-			class="mt-3 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none transition"
+<div class="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-center justify-center p-2 sm:p-4">
+	<div class="w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-2xl mx-auto bg-white p-3 sm:p-6 md:p-8 rounded-lg sm:rounded-xl shadow-2xl relative overflow-y-auto max-h-[95vh] sm:max-h-[90vh]">
+		<!-- Close button -->
+		<button
+			on:click={handleClose}
+			aria-label="Tutup"
+			class="absolute top-2 right-2 sm:top-3 sm:right-3 text-gray-600 hover:text-red-500 text-lg sm:text-2xl font-bold z-50 focus:outline-none w-6 h-6 sm:w-auto sm:h-auto flex items-center justify-center bg-white rounded-full shadow-sm"
+			>&times;</button
 		>
-			<option value="1">1 😢 Sangat Buruk</option>
-			<option value="2">2 😔 Buruk</option>
-			<option value="3">3 😐 Cukup Baik</option>
-			<option value="4">4 😊 Baik</option>
-			<option value="5">5 😍 Sangat Baik</option>
-		</select>
+		
+		<form
+			on:submit={handleSubmit}
+			class="flex flex-col gap-2 sm:gap-6 w-full mt-6 sm:mt-0"
+		>
+			<div>
+				<h2 class="text-sm sm:text-lg font-semibold text-gray-700 border-b pb-1 sm:pb-2 flex items-center gap-0.5">
+					Feedback Baru
+					<span class="text-red-500 text-sm sm:text-xl" title="Field wajib diisi">*</span>
+				</h2>
+				<textarea
+					id="feedback"
+					name="feedback"
+					bind:value={feedback}
+					rows="2"
+					placeholder="Tuliskan feedback Anda di sini..."
+					class="mt-1 sm:mt-3 w-full px-2 py-1 sm:px-4 sm:py-2 border border-gray-300 rounded text-xs sm:text-base focus:ring-2 focus:ring-green-400 outline-none transition resize-none"
+				></textarea>
+			</div>
+			<!-- Lampiran/Screenshot -->
+			<div>
+				<label for="photo_feedback" class="block font-medium text-xs sm:text-base mb-0.5 sm:mb-2">Lampiran/Screenshot</label>
+				<input
+					id="photo_feedback"
+					type="file"
+					multiple
+					on:change={(e) => {
+						photo_feedback = Array.from(e.target.files);
+					}}
+					accept=".png, .jpg, .jpeg, .gif, .image, .webp, .svg"
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base file:mr-1 file:py-0.5 file:px-1 file:rounded file:border-0 file:text-xs file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
+				/>
+			</div>
+			<div>
+				<h2 class="text-sm sm:text-lg font-semibold text-gray-700 border-b pb-1 sm:pb-2">Rating Website (Opsional)</h2>
+				<select
+					id="rating"
+					name="rating"
+					bind:value={rating}
+					class="mt-1 sm:mt-3 w-full px-2 py-1 sm:px-4 sm:py-2 border border-gray-300 rounded text-xs sm:text-base focus:ring-2 focus:ring-yellow-400 outline-none transition"
+				>
+					<option value="1">1 😢 Sangat Buruk</option>
+					<option value="2">2 😔 Buruk</option>
+					<option value="3">3 😐 Cukup Baik</option>
+					<option value="4">4 😊 Baik</option>
+					<option value="5">5 😍 Sangat Baik</option>
+				</select>
+			</div>
+			<div>
+				<h2 class="text-sm sm:text-lg font-semibold text-gray-700 border-b pb-1 sm:pb-2">
+					Halaman/URL Terkait (Opsional)
+				</h2>
+				<input
+					type="text"
+					id="url"
+					name="url"
+					bind:value={url}
+					class="mt-1 sm:mt-3 w-full px-2 py-1 sm:px-4 sm:py-2 border border-gray-300 rounded text-xs sm:text-base focus:ring-2 focus:ring-indigo-400 outline-none transition"
+					placeholder="Masukkan URL"
+				/>
+			</div>
+			
+			<button
+				type="submit"
+				class="mt-2 sm:mt-8 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 sm:py-3 rounded font-medium text-xs sm:text-base shadow-md hover:shadow-lg transform transition hover:-translate-y-0.5"
+				disabled={isLoading}
+			>
+				{#if isLoading}
+					Mengirim...
+				{:else}
+					Kirim Feedback
+				{/if}
+			</button>
+		</form>
 	</div>
-	<div>
-		<h2 class="text-lg font-semibold text-gray-700 border-b pb-2">
-			Halaman/URL Terkait (Opsional)
-		</h2>
-		<input
-			type="text"
-			id="url"
-			name="url"
-			bind:value={url}
-			class="mt-3 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-400 outline-none transition"
-			placeholder="Masukkan URL"
-		/>
-	</div>
-	
-	<button
-		type="submit"
-		class="mt-8 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transform transition hover:-translate-y-0.5"
-		disabled={isLoading}
-	>
-		{#if isLoading}
-			Mengirim...
-		{:else}
-			Kirim Feedback
-		{/if}
-	</button>
-</form>
+</div>
+
+<style>
+	@media (max-width: 375px) {
+		/* iPhone SE specific optimizations */
+		.max-w-\[95vw\] {
+			max-width: 95vw;
+		}
+	}
+	@media (max-width: 639px) {
+		/* General mobile optimizations */
+		.max-w-\[95vw\] {
+			max-width: 95vw;
+		}
+	}
+</style>

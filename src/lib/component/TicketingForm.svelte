@@ -277,7 +277,7 @@
 {#if $notification.show}
 	<div class="fixed inset-0 z-50 flex items-center justify-center">
 		<div
-			class="px-6 py-3 rounded-lg shadow-lg font-semibold text-white text-center transition-all duration-300"
+			class="px-2 py-1 sm:px-6 sm:py-3 rounded shadow-lg font-semibold text-white text-center transition-all duration-300 text-xs sm:text-base"
 			class:bg-green-500={$notification.type === 'success'}
 			class:bg-red-500={$notification.type === 'error'}
 			class:animate-bounce={$notification.type === 'success'}
@@ -291,7 +291,7 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
 		<div class="flex flex-col items-center">
 			<svg
-				class="animate-spin h-12 w-12 text-blue-600 mb-4"
+				class="animate-spin h-6 w-6 sm:h-12 sm:w-12 text-blue-600 mb-2 sm:mb-4"
 				xmlns="http://www.w3.org/2000/svg"
 				fill="none"
 				viewBox="0 0 24 24"
@@ -300,29 +300,29 @@
 				></circle>
 				<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
 			</svg>
-			<span class="text-white text-lg font-semibold">Mengirim ticket...</span>
+			<span class="text-white text-sm sm:text-lg font-semibold">Mengirim ticket...</span>
 		</div>
 	</div>
 {/if}
 
-<div class="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-center justify-center">
+<div class="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-center justify-center p-2 sm:p-4">
 	<div
-		class="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-auto bg-white p-4 sm:p-6 rounded-2xl shadow-2xl relative overflow-y-auto max-h-[90vh]"
+		class="w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-auto bg-white p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-2xl shadow-2xl relative overflow-y-auto max-h-[95vh] sm:max-h-[90vh]"
 	>
 		<button
 			on:click={handleClose}
 			aria-label="Tutup"
-			class="absolute top-3 right-3 text-gray-600 hover:text-red-500 text-2xl font-bold z-50 focus:outline-none"
+			class="absolute top-2 right-2 sm:top-3 sm:right-3 text-gray-600 hover:text-red-500 text-lg sm:text-2xl font-bold z-50 focus:outline-none w-6 h-6 sm:w-auto sm:h-auto flex items-center justify-center bg-white rounded-full shadow-sm"
 			>&times;</button
 		>
-		<form on:submit={handleSubmit} class="flex flex-col gap-4 w-full">
+		<form on:submit={handleSubmit} class="flex flex-col gap-2 sm:gap-4 w-full mt-6 sm:mt-0">
 			<!-- Dropdown Main Category -->
 			<div>
-				<label class="block font-semibold mb-2 flex items-center gap-1">
+				<label class="block font-medium mb-0 text-xs sm:text-base flex items-center gap-0.5" for="category-select">
 					Kategori
-					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
-				<select bind:value={category} class="w-full px-4 py-2 border rounded-lg">
+				<select id="category-select" bind:value={category} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
 					<option value="" disabled>Pilih Kategori</option>
 					<option value="Sistem">Sistem</option>
 					<option value="Asset">Asset</option>
@@ -333,13 +333,13 @@
 
 			{#if category === 'Sistem'}
 				<!-- System Inputs -->
-				<div class="flex flex-col gap-4">
+				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="flex items-center gap-1">
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="app-type-select">
 							Jenis Aplikasi
-							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
-						<select bind:value={app_type} class="w-full px-4 py-2 border rounded-lg">
+						<select id="app-type-select" bind:value={app_type} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
 							<option value="" disabled>Pilih Jenis Aplikasi</option>
 							{#each appTypeOptions as opt}
 								<option value={opt}>{opt}</option>
@@ -347,36 +347,38 @@
 						</select>
 					</div>
 					<div>
-						<label class="flex items-center gap-1">
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="url-app-input">
 							Nama Aplikasi/URL
-							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
 						<input
+							id="url-app-input"
 							type="text"
 							bind:value={url_name_app}
-							class="w-full px-4 py-2 border rounded-lg"
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 							placeholder="Contoh: Odoo, SAP, Absensi Mobile"
 						/>
 					</div>
 					<div>
-						<label>Browser/Perangkat yang Digunakan</label>
+						<label class="text-xs sm:text-base font-medium" for="browser-input">Browser/Perangkat yang Digunakan</label>
 						<input
+							id="browser-input"
 							type="text"
 							bind:value={browser}
-							class="w-full px-4 py-2 border rounded-lg"
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 							placeholder="Contoh: Chrome, Android 11"
 						/>
 					</div>
 				</div>
 			{:else if category === 'Asset'}
 				<!-- Infrastructure Inputs -->
-				<div class="flex flex-col gap-4">
+				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="flex items-center gap-1">
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="device-select">
 							Jenis Perangkat
-							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
-						<select bind:value={device} class="w-full px-4 py-2 border rounded-lg">
+						<select id="device-select" bind:value={device} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
 							<option value="" disabled>Pilih Jenis Perangkat</option>
 							{#each deviceTypeOptions as opt}
 								<option value={opt}>{opt}</option>
@@ -384,76 +386,81 @@
 						</select>
 					</div>
 					<div>
-						<label>Nomor/Label Aset (Jika ada ditambahkan)</label>
+						<label class="text-xs sm:text-base font-medium" for="label-input">Nomor/Label Aset (Jika ada ditambahkan)</label>
 						<input
+							id="label-input"
 							type="text"
 							bind:value={label}
-							class="w-full px-4 py-2 border rounded-lg"
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 							placeholder="Jika perangkat memiliki kode aset"
 						/>
 					</div>
 					<div>
-						<label class="flex items-center gap-1">
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="location-input">
 							Lokasi Perangkat
-							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
 						<input
+							id="location-input"
 							type="text"
 							bind:value={location}
-							class="w-full px-4 py-2 border rounded-lg"
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 							placeholder="Contoh: Kantor Pusat Lantai 2, Gudang A"
 						/>
 					</div>
 				</div>
 			{:else if category === 'Izin Keluar'}
 				<!-- Permission to Leave Inputs -->
-				<div class="flex flex-col gap-4">
+				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="flex items-center gap-1">
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="departure-time">
 							Jam Keluar
-							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
 						<input
+							id="departure-time"
 							type="time"
 							bind:value={departure_time}
-							class="w-full px-4 py-2 border rounded-lg"
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 						/>
 					</div>
 					<div>
-						<label class="flex items-center gap-1">
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="return-time">
 							Jam Estimasi Kembali
-							<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
 						<input
+							id="return-time"
 							type="time"
 							bind:value={estimated_return_time}
-							class="w-full px-4 py-2 border rounded-lg"
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 						/>
 					</div>
 				</div>
 			{/if}
 			<div>
-				<label class="flex items-center gap-1">
+				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="desc-input">
 					{#if category === 'Izin Keluar'}
 						Keperluan Izin
 					{:else}
 						Judul Deskripsi
 					{/if}
-					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
 				<input
+					id="desc-input"
 					type="text"
-					class="w-full px-4 py-2 border rounded-lg"
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 					placeholder={category === 'Izin Keluar' ? 'Tuliskan keperluan izin Anda' : 'Tuliskan kategori lain'}
 					bind:value={desc}
 				/>
 			</div>
 			<div>
-				<label class="flex items-center gap-1">
+				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="department-select">
 					Departemen Tujuan
-					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
-				<select bind:value={target_department} class="w-full px-4 py-2 border rounded-lg">
+				<select id="department-select" bind:value={target_department} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
 					<option value="" disabled>Pilih Departemen Tujuan</option>
 					{#each departmentOptions as opt}
 						<option value={opt}>{opt}</option>
@@ -462,11 +469,11 @@
 			</div>
 			<!-- Priority General -->
 			<div>
-				<label class="flex items-center gap-1">
+				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="priority-select">
 					Prioritas
-					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
-				<select bind:value={priority} class="w-full px-4 py-2 border rounded-lg">
+				<select id="priority-select" bind:value={priority} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
 					<option value="" disabled>Pilih Prioritas</option>
 					{#each priorityOptions as opt}
 						<option value={opt}>{opt}</option>
@@ -475,53 +482,62 @@
 			</div>
 			<!-- Ticket Detail General -->
 			<div>
-				<label class="flex items-center gap-1">
+				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="ticket-textarea">
 					{#if category === 'Izin Keluar'}
 						Detail Keperluan
 					{:else}
 						Detail Masalah
 					{/if}
-					<span class="text-red-500 text-xl" title="Field wajib diisi">*</span>
+					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
 				<textarea
+					id="ticket-textarea"
 					bind:value={ticket}
-					class="w-full px-4 py-2 border rounded-lg"
+					rows="2"
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base resize-none"
 					placeholder={category === 'Izin Keluar' ? 'Jelaskan detail keperluan izin Anda' : 'Jelaskan detail masalah yang Anda alami'}
 				></textarea>
 			</div>
 			<!-- Attachment/Screenshot -->
 			<div>
-				<label>Lampiran/Screenshot (Opsional)</label>
+				<label class="text-xs sm:text-base font-medium" for="file-input">Lampiran/Screenshot (Opsional)</label>
 				<input
+					id="file-input"
 					type="file"
 					multiple
 					on:change={(e) => {
-						photo_ticket = Array.from(e.target.files);
+						// @ts-ignore
+						if (e.target && e.target.files) {
+							// @ts-ignore
+							photo_ticket = Array.from(e.target.files);
+						}
 					}}
 					accept=".png, .jpg, .jpeg, .gif, .image, .webp, .svg"
-					class="w-full px-4 py-2 border rounded-lg"
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base file:mr-1 file:py-0.5 file:px-1 file:rounded file:border-0 file:text-xs file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100"
 				/>
 			</div>
 			<!-- Follow Up -->
 			<div>
-				<label>Apakah Anda ingin follow up? (Opsional)</label>
-				<div class="flex gap-4 mt-1">
-					<label><input type="radio" bind:group={followUp} value="yes" /> Ya</label>
-					<label><input type="radio" bind:group={followUp} value="no" /> Tidak</label>
-				</div>
-				{#if followUp === 'yes'}
-					<input
-						type="text"
-						bind:value={contactPhone}
-						class="w-full mt-2 px-4 py-2 border rounded-lg"
-						placeholder="Masukkan nomor telepon: +62"
-					/>
-				{/if}
+				<fieldset>
+					<legend class="text-xs sm:text-base font-medium">Apakah Anda ingin follow up? (Opsional)</legend>
+					<div class="flex gap-2 sm:gap-3 mt-0.5">
+						<label class="text-xs sm:text-base"><input type="radio" bind:group={followUp} value="yes" /> Ya</label>
+						<label class="text-xs sm:text-base"><input type="radio" bind:group={followUp} value="no" /> Tidak</label>
+					</div>
+					{#if followUp === 'yes'}
+						<input
+							type="text"
+							bind:value={contactPhone}
+							class="w-full mt-0.5 sm:mt-1 px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Masukkan nomor telepon: +62"
+						/>
+					{/if}
+				</fieldset>
 			</div>
 			<!-- Submit Button -->
 			<button
 				type="submit"
-				class="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transform transition hover:-translate-y-0.5"
+				class="mt-2 sm:mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 sm:py-3 rounded font-medium text-xs sm:text-base shadow-md hover:shadow-lg transform transition hover:-translate-y-0.5"
 			>
 				{#if isLoading}
 					Mengirim...
@@ -534,38 +550,16 @@
 </div>
 
 <style>
-	@media (max-width: 639px) {
-		.max-w-sm {
-			max-width: 98vw;
-		}
-		.p-4,
-		.sm\:p-6 {
-			padding: 1rem !important;
-		}
-	}
-	@media (min-width: 640px) and (max-width: 767px) {
-		.max-w-md {
+	@media (max-width: 375px) {
+		/* iPhone SE specific optimizations */
+		.max-w-\[95vw\] {
 			max-width: 95vw;
 		}
 	}
-	@media (min-width: 768px) and (max-width: 1023px) {
-		.max-w-lg {
-			max-width: 90vw;
-		}
-	}
-	@media (min-width: 1024px) and (max-width: 1279px) {
-		.max-w-2xl {
-			max-width: 80vw;
-		}
-	}
-	@media (min-width: 1280px) and (max-width: 1535px) {
-		.max-w-3xl {
-			max-width: 70vw;
-		}
-	}
-	@media (min-width: 1536px) {
-		.max-w-4xl {
-			max-width: 60vw;
+	@media (max-width: 639px) {
+		/* General mobile optimizations */
+		.max-w-\[95vw\] {
+			max-width: 95vw;
 		}
 	}
 </style>

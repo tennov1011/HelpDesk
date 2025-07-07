@@ -7,7 +7,12 @@
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
 	import { goto } from '$app/navigation';
-	import { isAuthenticated, userRole, userDepartment, userEmail } from '$lib/services/firebaseConfig';
+	import {
+		isAuthenticated,
+		userRole,
+		userDepartment,
+		userEmail
+	} from '$lib/services/firebaseConfig';
 
 	let tickets = [];
 	let feedbacks = [];
@@ -147,23 +152,23 @@
 	// Open feedback detail modal
 	function handleOpenDetailFeedback(e) {
 		const { feedback, photo_feedback, url } = e.detail;
-		
+
 		// Format konten untuk grid layout
 		let detailContent = `Feedback:\n${feedback || 'Tidak Ada Feedback'}`;
-		
+
 		// Tambahkan URL dengan format yang sesuai untuk pemisahan di grid
 		detailContent += `\n\nURL:\n${url || 'Tidak ada URL'}`;
-		
+
 		// Simpan untuk ditampilkan
 		detailTextFeedback = detailContent;
-		
+
 		// Simpan URL gambar jika ada foto, atau set nilai untuk menunjukkan tidak ada lampiran
 		if (photo_feedback) {
 			imageUrlFeedback = `https://directus.eltamaprimaindo.com/assets/${photo_feedback}`;
 		} else {
 			imageUrlFeedback = ''; // Kosong untuk keperluan kondisi di tampilan
 		}
-		
+
 		// Tampilkan modal detail
 		showDetailModalFeedback = true;
 	}
@@ -301,15 +306,17 @@
 	<div class="flex items-center justify-center min-h-screen text-lg text-blue-700">Loading...</div>
 {:else}
 	<div
-		class="p-6 bg-gradient-to-br from-blue-100 via-blue-50 to-white min-h-screen animate-fade-in"
+		class="p-0 md:p-6 bg-gradient-to-br from-blue-100 via-blue-50 to-white min-h-screen animate-fade-in"
 	>
-		<h1 class="text-2xl font-bold text-blue-800 drop-shadow">Dashboard Admin</h1>
+		<h1 class="text-2xl font-bold text-blue-800 drop-shadow px-2 md:px-0">Dashboard Admin</h1>
 		<div class="flex justify-between items-center mb-6"></div>
 		<!-- Stats -->
-		<TicketStats tickets={filteredTickets} {feedbacks} />
+		<div class="w-full px-0 md:px-0">
+			<TicketStats tickets={filteredTickets} {feedbacks} />
+		</div>
 
 		<!-- Quick Actions -->
-		<div class="flex items-center gap-4 mb-6">
+		<div class="flex items-center gap-4 mb-6 px-2 md:px-0">
 			<!-- Tombol Tiket Baru -->
 			<button
 				on:click={openTicketModal}
@@ -319,7 +326,7 @@
 		</div>
 
 		<!-- Tickets Table -->
-		<div class="bg-white p-4 rounded-xl shadow-lg mb-6 animate-fade-in-up">
+		<div class="bg-white p-4 md:rounded-xl shadow-lg mb-6 animate-fade-in-up mx-0 md:mx-0 w-full">
 			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono">List Tiket</h2>
 			<TicketList
 				tickets={filteredTickets}
@@ -328,8 +335,10 @@
 				on:openDetail={handleOpenDetailTicket}
 				on:ticketUpdated={handleTicketUpdated}
 			/>
+		</div>
 
-			<!-- Feedback Table -->
+		<!-- Feedback Table -->
+		<div class="bg-white p-4 md:rounded-xl shadow-lg mb-6 animate-fade-in-up mx-0 md:mx-0 w-full">
 			<h2 class="text-xl font-semibold mb-4 ml-2 text-blue-700 font-mono mt-4">List Feedback</h2>
 			<FeedbackList
 				{feedbacks}
@@ -362,47 +371,61 @@
 {#if showDetailModalFeedback}
 	<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full relative flex flex-col items-start animate-fade-in-up"
-			style="max-height: 80vh; overflow-y-auto"
+			class="bg-white rounded-xl shadow-2xl p-3 md:p-6 max-w-[95vw] md:max-w-4xl w-full relative flex flex-col items-start animate-fade-in-up"
+			style="max-height: 90vh; overflow-y-auto"
 		>
 			<button
-				class="absolute top-2 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-600 hover:text-red-600"
 				on:click={closeDetailModalFeedback}>&times;</button
 			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700 self-center">Detail Feedback</h2>
-			
+			<h2 class="text-lg md:text-xl font-bold mb-3 md:mb-4 text-blue-700 self-center">
+				Detail Feedback
+			</h2>
+
 			<!-- Grid layout untuk feedback dan URL -->
 			<div class="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
 				<!-- Feedback column with vertical scrolling -->
 				<div class="bg-blue-100 rounded-lg p-2">
-					<h4 class="font-semibold text-blue-700 mb-1">Feedback</h4>
-					<div class="max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-						<p class="text-gray-800 whitespace-pre-line leading-relaxed">
+					<h4 class="font-semibold text-blue-700 mb-1 text-sm md:text-base">Feedback</h4>
+					<div class="max-h-[150px] md:max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+						<p class="text-gray-800 whitespace-pre-line leading-relaxed text-sm md:text-base">
 							{detailTextFeedback.split('\n\nURL:')[0].replace('Feedback:\n', '')}
 						</p>
 					</div>
 				</div>
-				
+
 				<!-- URL column with vertical scrolling -->
 				<div class="bg-blue-50 rounded-lg p-2">
-					<h4 class="font-semibold text-blue-700 mb-1">URL</h4>
-					<div class="max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-						<p class="text-gray-800 whitespace-pre-line leading-relaxed break-all">
-							{detailTextFeedback.includes('URL:') ? detailTextFeedback.split('URL:\n')[1] : 'Tidak ada URL'}
+					<h4 class="font-semibold text-blue-700 mb-1 text-sm md:text-base">URL</h4>
+					<div class="max-h-[150px] md:max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+						<p
+							class="text-gray-800 whitespace-pre-line leading-relaxed break-all text-sm md:text-base"
+						>
+							{detailTextFeedback.includes('URL:')
+								? detailTextFeedback.split('URL:\n')[1]
+								: 'Tidak ada URL'}
 						</p>
 					</div>
 				</div>
 			</div>
-			
+
 			<!-- Lampiran section -->
 			<div class="w-full flex flex-col items-center mt-2 border-t pt-2">
-				<h3 class="text-lg font-semibold mb-2 text-blue-700 mt-2">Lampiran</h3>
+				<h3 class="text-base md:text-lg font-semibold mb-1 md:mb-2 text-blue-700 mt-1 md:mt-2">
+					Lampiran
+				</h3>
 				{#if imageUrlFeedback}
 					<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-						<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[40vh] max-w-full rounded" />
+						<img
+							src={imageUrlFeedback}
+							alt="Lampiran"
+							class="max-h-[30vh] md:max-h-[40vh] max-w-full rounded"
+						/>
 					</div>
 				{:else}
-					<p class="text-gray-500 italic py-4">Lampiran tidak tersedia</p>
+					<p class="text-gray-500 italic py-2 md:py-4 text-sm md:text-base">
+						Lampiran tidak tersedia
+					</p>
 				{/if}
 			</div>
 		</div>
@@ -413,31 +436,35 @@
 {#if showDetailModalTicket && selectedTicket}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-gradient-to-br from-blue-50 via-white to-blue-100 border border-blue-200 rounded-2xl shadow-4xl p-8 max-w-6xl w-full h-[60vh] overflow-y-auto relative animate-fade-in-up"
+			class="bg-gradient-to-br from-blue-50 via-white to-blue-100 border border-blue-200 rounded-2xl shadow-4xl p-4 md:p-8 max-w-[95vw] md:max-w-6xl w-full h-[90vh] md:h-[60vh] overflow-y-auto relative animate-fade-in-up"
 		>
 			<button
-				class="absolute top-3 right-5 text-2xl text-gray-400 hover:text-red-500 transition"
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-red-500 transition"
 				on:click={closeDetailModalTicket}>&times;</button
 			>
-			<h2 class="text-xl font-extrabold mb-6 text-blue-700 drop-shadow gap-5">
+			<h2 class="text-lg md:text-xl font-extrabold mb-4 md:mb-6 text-blue-700 drop-shadow gap-5">
 				Detail Tiket <span
-					class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-base font-semibold ml-2"
+					class="bg-blue-100 text-blue-700 px-2 md:px-3 py-0.5 md:py-1 rounded-lg text-sm md:text-base font-semibold ml-2"
 					>{selectedTicket?.id}</span
 				>
 			</h2>
-			<table class="w-full text-left mb-4 border-separate border-spacing-y-1">
-				<tbody class="space-y-2">
+			<table
+				class="w-full text-left mb-3 md:mb-4 border-separate border-spacing-y-0.5 md:border-spacing-y-1"
+			>
+				<tbody class="space-y-1 md:space-y-2">
 					{#each detailFieldsTicket as [key, value], idx}
 						<!-- Display alternating row colors -->
 						<tr class={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
-							<td class="font-semibold pr-4 py-2 capitalize text-blue-900 w-1/3">
+							<td
+								class="font-semibold pr-2 md:pr-4 py-1.5 md:py-2 capitalize text-blue-900 w-1/3 text-sm md:text-base"
+							>
 								{key.replace(/_/g, ' ')}
 							</td>
-							<td class="py-2 text-gray-700 break-words">
+							<td class="py-1.5 md:py-2 text-gray-700 break-words text-sm md:text-base">
 								<!-- Check if field is detail and show button -->
 								{#if key.toLowerCase() === 'detail'}
 									<button
-										class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
+										class="px-2 md:px-3 py-0.5 md:py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
 										type="button"
 										on:click={() => openTicketDetailModal(value)}
 									>
@@ -448,7 +475,7 @@
 									<!-- Check if ticket has photo attachment -->
 									{#if selectedTicket.photo_ticket}
 										<button
-											class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
+											class="px-2 md:px-3 py-0.5 md:py-1 bg-blue-500 hover:bg-blue-600 text-white rounded shadow text-xs font-bold"
 											type="button"
 											on:click={() => {
 												imageUrlTicket = `https://directus.eltamaprimaindo.com/assets/${selectedTicket.photo_ticket}`;
@@ -458,7 +485,7 @@
 											Lihat File
 										</button>
 									{:else}
-										<span class="text-gray-400 italic">Tidak Tersedia</span>
+										<span class="text-gray-400 italic text-xs md:text-sm">Tidak Tersedia</span>
 									{/if}
 									<!-- Check if value is array and join with comma -->
 								{:else if Array.isArray(value)}
@@ -473,9 +500,11 @@
 			</table>
 			<!-- Check if current user is admin to show delete button -->
 			{#if currentRole === 'admin'}
-				<div class="mt-6 bg-red-50 rounded-lg p-4 border border-red-100 flex justify-center">
+				<div
+					class="mt-4 md:mt-6 bg-red-50 rounded-lg p-3 md:p-4 border border-red-100 flex justify-center"
+				>
 					<button
-						class="flex-1 bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition font-semibold shadow"
+						class="flex-1 bg-red-500 text-white py-1.5 md:py-2 rounded-md hover:bg-red-600 transition font-semibold shadow text-sm md:text-base"
 						on:click={deleteTicket}
 					>
 						Hapus Tiket
@@ -490,15 +519,19 @@
 {#if showTicketDetailModal}
 	<div class="fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-70">
 		<div
-			class="bg-white rounded-xl shadow-2xl p-6 max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[60vh]"
-			style="max-height: 80vh; overflow-y: auto"
+			class="bg-white rounded-xl shadow-2xl p-4 md:p-6 max-w-[95vw] md:max-w-5xl w-full relative flex flex-col items-center animate-fade-in-up h-[80vh] md:h-[60vh]"
+			style="max-height: 90vh; overflow-y: auto"
 		>
 			<button
-				class="absolute top-3 right-4 text-2xl font-bold text-gray-600 hover:text-red-600"
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-600 hover:text-red-600"
 				on:click={closeTicketDetailModal}>&times;</button
 			>
-			<h2 class="text-xl font-bold mb-4 text-blue-700">Detail Informasi Tiket</h2>
-			<p class="text-gray-800 whitespace-pre-line text-justify">{ticketDetailText}</p>
+			<h2 class="text-lg md:text-xl font-bold mb-3 md:mb-4 text-blue-700">
+				Detail Informasi Tiket
+			</h2>
+			<p class="text-gray-800 whitespace-pre-line text-justify text-sm md:text-base px-2">
+				{ticketDetailText}
+			</p>
 		</div>
 	</div>
 {/if}
@@ -547,7 +580,7 @@
 	.animate-fade-in-up {
 		animation: fade-in-up 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
 	}
-	
+
 	/* Custom scrollbar styling */
 	.custom-scrollbar::-webkit-scrollbar {
 		width: 6px;
