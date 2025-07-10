@@ -167,7 +167,6 @@
 				['perangkat', ticket.device],
 				['label', ticket.label],
 				['lokasi', ticket.location],
-				['tipe masalah', ticket.problem_type],
 				['detail', ticket.ticket],
 				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
 				['PIC', ticket.pic]
@@ -625,7 +624,7 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 							(t.division || '').toLowerCase().includes(query) ||
 							(t.priority || '').toLowerCase().includes(query) ||
 							(t.status || '').toLowerCase().includes(query) ||
-							(t.target_department || '').toLowerCase().includes(query) ||
+							(t.department || t.target_department || '').toLowerCase().includes(query) ||
 							(t.desc || '').toLowerCase().includes(query)
 						);
 					} else if (searchCriteria === 'id') {
@@ -639,7 +638,7 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 					} else if (searchCriteria === 'status') {
 						return (t.status || '').toLowerCase().includes(query);
 					} else if (searchCriteria === 'department') {
-						return (t.target_department || '').toLowerCase().includes(query);
+						return (t.department || t.target_department || '').toLowerCase().includes(query);
 					}
 					return true;
 				})
@@ -652,7 +651,7 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 					const query = mobileSearchQuery.toLowerCase();
 					return (
 						(t.status || '').toLowerCase().includes(query) ||
-						(t.target_department || '').toLowerCase().includes(query) ||
+						(t.department || t.target_department || '').toLowerCase().includes(query) ||
 						(t.desc || '').toLowerCase().includes(query) ||
 						(t.id || '').toString().toLowerCase().includes(query) ||
 						(t.name || '').toLowerCase().includes(query) ||
@@ -777,7 +776,7 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 						<th class="text-center hidden md:table-cell">Tanggal</th>
 					{/if}
 					{#if showDepartments}
-						<th class="text-center hidden md:table-cell">Departemen</th>
+						<th class="text-center">Departemen</th>
 					{/if}
 
 					<!-- Always show Status -->
@@ -828,7 +827,9 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 							<td class="text-center hidden md:table-cell">{formatDate(ticket.date)}</td>
 						{/if}
 						{#if showDepartments}
-							<td class="text-center hidden md:table-cell">{ticket.target_department}</td>
+							<td class="text-center department-cell" title={ticket.department || ticket.target_department}>
+								{ticket.department || ticket.target_department}
+							</td>
 						{/if}
 
 						<!-- Always show Status -->
@@ -1255,6 +1256,15 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 
 		.max-w-xs {
 			max-width: 120px;
+		}
+		
+		/* Department column on mobile */
+		.department-cell {
+			max-width: 80px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			font-size: 0.75rem;
 		}
 		
 		/* Form controls in modals */

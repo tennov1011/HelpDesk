@@ -70,7 +70,7 @@ export const roleDefinitions = [
   { email: 'manager.project@eltama.com', role: 'user', department: 'Project' },
   { email: 'manager.marketing@eltama.com', role: 'user', department: 'Marketing' },
   { email: 'manager.maintenance@eltama.com', role: 'user', department: 'Maintenance' },
-  { email: 'general.manager@eltama.com', role: 'user', department: 'Management' },
+  { email: 'general.manager@eltama.com', role: 'admin', department: 'Management' },
   { email: 'plant.manager@eltama.com', role: 'user', department: 'Management' },
 
   { email: 'it@eltama.com', role: 'admin', department: 'IT' },
@@ -187,6 +187,11 @@ export function getDepartmentForRole(role) {
 // Helper function to check if a role is a manager role
 export function isManagerRole(role) {
   return role && (role.endsWith('.manager') || role === 'general_manager' || role === 'plant_manager');
+}
+
+// Helper function to check if a user is a general manager (can see all tickets)
+export function isGeneralManager(email) {
+  return email && email.toLowerCase() === 'general.manager@eltama.com';
 }
 
 // Helper function to get approval field based on role

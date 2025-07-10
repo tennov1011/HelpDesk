@@ -3,6 +3,7 @@
 	import FeedbackList from '$lib/component/FeedbackList.svelte';
 	import TicketingForm from '$lib/component/TicketingForm.svelte';
 	import FeedbackForm from '$lib/component/FeedbackForm.svelte';
+	import SurveyForm from '$lib/component/SurveyForm.svelte';
 	import Notification from '$lib/component/Notification.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -17,6 +18,7 @@
 	let selectedTicket = null;
 	let showTicketModal = false;
 	let showFeedbackModal = false;
+	let showSurveyModal = false;
 	let showDetailModal = false;
 	let authReady = false;
 	let roleReady = false;
@@ -169,6 +171,14 @@
 		showDetailModal = false;
 		selectedTicket = null;
 	}
+	// Buka modal form survey baru
+	function openSurveyModal() {
+		showSurveyModal = true;
+	}
+	// Tutup modal form survey
+	function closeSurveyModal() {
+		showSurveyModal = false;
+	}
 
 	// Modal untuk detail feedback
 	let showImageModalFeedback = false;
@@ -254,6 +264,10 @@
 	function handleFeedbackSubmitted() {
 		closeFeedbackModal();
 		fetchFeedback(); // refresh data feedback
+	}
+	// Handler setelah survey berhasil di-submit
+	function handleSurveySubmitted() {
+		closeSurveyModal();
 	}
 
 	let unsubAuth, unsubRole;
@@ -354,7 +368,7 @@
 				/>
 			</div>
 			<!-- Tombol Feedback & Tiket Baru -->
-			<div class="grid grid-cols-2 gap-4 flex-1">
+			<div class="grid grid-cols-3 gap-4 flex-1">
 				<button
 					on:click={openFeedbackModal}
 					class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-xl text-center shadow-lg w-full font-semibold transition transform hover:scale-105 animate-fade-in-up"
@@ -364,6 +378,11 @@
 					on:click={openTicketModal}
 					class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-xl text-center shadow-lg w-full font-semibold transition transform hover:scale-105 animate-fade-in-up"
 					>Tiket Baru</button
+				>
+				<button
+					on:click={openSurveyModal}
+					class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-xl text-center shadow-lg w-full font-semibold transition transform hover:scale-105 animate-fade-in-up"
+					>Survey Baru</button
 				>
 			</div>
 		</div>
@@ -452,69 +471,221 @@
 	</div>
 {/if}
 
+<!-- Conditional: Modal untuk form survey baru -->
+{#if showSurveyModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+	>
+		<div class="bg-white rounded-lg shadow-xl p-0 max-w-2xl w-full relative animate-fade-in-up">
+			<button
+				class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+				on:click={closeSurveyModal}>&times;</button
+			>
+			<SurveyForm
+				onClose={closeSurveyModal}
+				on:submitted={handleSurveySubmitted}
+				employee={myEmployee}
+			/>
+		</div>
+	</div>
+{/if}
+
 <!-- Conditional: Modal untuk detail tiket -->
 {#if showDetailModal && selectedTicket}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
 		<div
-			class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-2xl p-4 md:p-8 relative animate-fade-in-up max-h-[95vh] overflow-y-auto"
+			class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-2xl p-4 md:p-6 relative animate-fade-in-up max-h-[95vh] overflow-y-auto"
 		>
 			<button
-				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-red-500 transition"
+				class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors duration-200"
 				on:click={closeDetailModal}
 				aria-label="Tutup"
 			>
-				&times;
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M6 18L18 6M6 6l12 12"
+					></path>
+				</svg>
 			</button>
-			<h2 class="text-lg md:text-xl font-extrabold mb-4 md:mb-6 text-blue-700 text-center drop-shadow">
-				Detail Tiket - {selectedTicket.id}
-			</h2>
-			<div class="space-y-3">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-1 md:gap-y-2">
-					<div class="font-semibold text-gray-600 text-sm md:text-base">Nama:</div>
-					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.name}</div>
 
-					<div class="font-semibold text-gray-600 text-sm md:text-base">Kategori:</div>
-					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.category}</div>
-
-					<div class="font-semibold text-gray-600 text-sm md:text-base">Departemen Tujuan:</div>
-					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.target_department}</div>
-
-					<div class="font-semibold text-gray-600 text-sm md:text-base">Status:</div>
-					<div class="text-gray-800 text-sm md:text-base">{selectedTicket.status}</div>
-
-					<div class="font-semibold text-gray-600 text-sm md:text-base">Tanggal Dibuat:</div>
-					<div class="text-gray-800 text-sm md:text-base">{new Date(selectedTicket.date).toLocaleString('id-ID')}</div>
+			<div class="mb-6 text-center">
+				<h2 class="text-xl md:text-2xl font-bold text-blue-700 mb-2">Detail Tiket</h2>
+				<div
+					class="inline-flex items-center bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold"
+				>
+					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+						></path>
+					</svg>
+					{selectedTicket.id}
 				</div>
+			</div>
 
-				<div class="mt-3">
-					<div class="font-semibold text-gray-600 mb-1 md:mb-2 text-sm md:text-base">Deskripsi Masalah:</div>
-					<div class="text-gray-800 whitespace-pre-line bg-gray-50 p-2 md:p-3 rounded border text-sm md:text-base">
-						{selectedTicket.ticket}
+			<!-- Grid Layout for better organization -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+				<!-- Informasi Dasar -->
+				<div
+					class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200"
+				>
+					<h3 class="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+							></path>
+						</svg>
+						Informasi Dasar
+					</h3>
+					<div class="space-y-3">
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-blue-700 mb-1">Nama</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm"
+							>
+								{selectedTicket.name || '-'}
+							</span>
+						</div>
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-blue-700 mb-1">Kategori</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm"
+							>
+								{selectedTicket.category || '-'}
+							</span>
+						</div>
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-blue-700 mb-1">Departemen Tujuan</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm"
+							>
+								{selectedTicket.target_department || '-'}
+							</span>
+						</div>
 					</div>
 				</div>
 
-				<!-- Conditional: Tampilkan lampiran jika ada -->
-				{#if selectedTicket.photo_ticket}
-					<div class="mt-3">
-						<div class="font-semibold text-gray-600 mb-1 md:mb-2 text-sm md:text-base">Lampiran:</div>
-						<img
-							src="https://directus.eltamaprimaindo.com/assets/{selectedTicket.photo_ticket}"
-							alt="Lampiran tiket"
-							class="max-w-full h-auto rounded border cursor-pointer"
+				<!-- Status & Tanggal -->
+				<div
+					class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200"
+				>
+					<h3 class="text-lg font-semibold text-green-800 mb-3 flex items-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						Status & Waktu
+					</h3>
+					<div class="space-y-3">
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-green-700 mb-1">Status</span>
+							<div class="bg-white px-3 py-2 rounded-lg border border-green-200">
+								<span
+									class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {selectedTicket.status === 'completed'
+										? 'bg-green-100 text-green-800'
+										: selectedTicket.status === 'in_progress'
+											? 'bg-yellow-100 text-yellow-800'
+											: 'bg-gray-100 text-gray-800'}"
+								>
+									{selectedTicket.status || 'Pending'}
+								</span>
+							</div>
+						</div>
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-green-700 mb-1">Tanggal Dibuat</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-green-200 text-sm"
+							>
+								{new Date(selectedTicket.date).toLocaleString('id-ID') || '-'}
+							</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Deskripsi Masalah -->
+			<div
+				class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 mb-4"
+			>
+				<h3 class="text-lg font-semibold text-purple-800 mb-3 flex items-center">
+					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+						></path>
+					</svg>
+					Deskripsi Masalah
+				</h3>
+				<div
+					class="bg-white rounded-lg border border-purple-200 p-4 max-h-[200px] overflow-y-auto custom-scrollbar"
+				>
+					<p class="text-gray-800 text-sm leading-relaxed whitespace-pre-line">
+						{selectedTicket.ticket || 'Tidak ada deskripsi masalah yang tersedia.'}
+					</p>
+				</div>
+			</div>
+
+			<!-- Lampiran -->
+			{#if selectedTicket.photo_ticket}
+				<div
+					class="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 mb-6"
+				>
+					<h3 class="text-lg font-semibold text-orange-800 mb-3 flex items-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a2 2 0 000-2.828z"
+							></path>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 12l6m0 0l6m-6 0v6"
+							></path>
+						</svg>
+						Lampiran
+					</h3>
+					<div class="bg-white rounded-lg border border-orange-200 p-4">
+						<div
+							class="group relative overflow-hidden rounded-lg cursor-pointer"
 							on:click={() => {
 								window.open(
 									`https://directus.eltamaprimaindo.com/assets/${selectedTicket.photo_ticket}`,
 									'_blank'
 								);
 							}}
-						/>
+						>
+							<img
+								src="https://directus.eltamaprimaindo.com/assets/{selectedTicket.photo_ticket}"
+								alt="Lampiran tiket"
+								class="w-full h-auto rounded-lg transition-transform duration-200 ease-in-out
+                                    group-hover:scale-105"
+							/>
+						</div>
 					</div>
-				{/if}
-			</div>
+				</div>
+			{/if}
 
-			<div class="flex justify-end mt-4 md:mt-8">
+			<div class="flex justify-center mt-4 md:mt-6">
 				<button
-					class="px-4 md:px-6 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold text-sm md:text-base"
+					class="px-6 md:px-8 py-2 md:py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-sm md:text-base"
 					on:click={closeDetailModal}
 				>
 					Tutup
@@ -527,7 +698,9 @@
 <!-- Conditional: Modal untuk riwayat update tiket -->
 {#if showUpdateDetailModal}
 	<div class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-		<div class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-xl p-4 md:p-8 relative animate-fade-in-up">
+		<div
+			class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-xl p-4 md:p-8 relative animate-fade-in-up"
+		>
 			<button
 				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-red-500 transition"
 				on:click={closeTicketUpdateDetail}
@@ -535,7 +708,9 @@
 			>
 				&times;
 			</button>
-			<h2 class="text-lg md:text-xl font-extrabold mb-4 md:mb-6 text-blue-700 text-center drop-shadow">
+			<h2
+				class="text-lg md:text-xl font-extrabold mb-4 md:mb-6 text-blue-700 text-center drop-shadow"
+			>
 				Track Ticket
 			</h2>
 			<!-- Conditional: Tampilkan daftar update atau empty state -->
@@ -543,7 +718,9 @@
 				<div class="space-y-4 md:space-y-6 max-h-[70vh] md:max-h-96 overflow-y-auto pr-2">
 					{#each [...selectedTicketUpdates].sort((a, b) => new Date(b.date) - new Date(a.date)) as update, idx}
 						<div class="border-b pb-3 md:pb-4">
-							<div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-1 md:gap-y-2 mb-2">
+							<div
+								class="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-1 md:gap-y-2 mb-2"
+							>
 								<div class="font-semibold text-gray-600 text-sm md:text-base">Tanggal Update:</div>
 								<div class="text-gray-800 text-sm md:text-base">{formatDate(update.date)}</div>
 
@@ -618,13 +795,15 @@
 	<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40">
 		<div
 			class="bg-white rounded-xl shadow-2xl p-3 md:p-6 max-w-[95vw] md:max-w-4xl w-full relative flex flex-col items-start animate-fade-in-up"
-			style="max-height: 90vh; overflow-y-auto"
+			style="max-height: 90vh; overflow-y:auto"
 		>
 			<button
 				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-600 hover:text-red-600"
 				on:click={closeDetailModalFeedback}>&times;</button
 			>
-			<h2 class="text-lg md:text-xl font-bold mb-3 md:mb-4 text-blue-700 self-center">Detail Feedback</h2>
+			<h2 class="text-lg md:text-xl font-bold mb-3 md:mb-4 text-blue-700 self-center">
+				Detail Feedback
+			</h2>
 
 			<!-- Grid layout untuk feedback dan URL -->
 			<div class="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
@@ -642,7 +821,9 @@
 				<div class="bg-blue-50 rounded-lg p-2">
 					<h4 class="font-semibold text-blue-700 mb-1 text-sm md:text-base">URL</h4>
 					<div class="max-h-[150px] md:max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-						<p class="text-gray-800 whitespace-pre-line leading-relaxed break-all text-sm md:text-base">
+						<p
+							class="text-gray-800 whitespace-pre-line leading-relaxed break-all text-sm md:text-base"
+						>
 							{detailTextFeedback.includes('URL:')
 								? detailTextFeedback.split('URL:\n')[1]
 								: 'Tidak ada URL'}
@@ -653,13 +834,21 @@
 
 			<!-- Lampiran section -->
 			<div class="w-full flex flex-col items-center mt-2 border-t pt-2">
-				<h3 class="text-base md:text-lg font-semibold mb-1 md:mb-2 text-blue-700 mt-1 md:mt-2">Lampiran</h3>
+				<h3 class="text-base md:text-lg font-semibold mb-1 md:mb-2 text-blue-700 mt-1 md:mt-2">
+					Lampiran
+				</h3>
 				{#if imageUrlFeedback}
 					<div class="p-2 bg-gray-50 rounded-lg border border-gray-100 shadow-sm">
-						<img src={imageUrlFeedback} alt="Lampiran" class="max-h-[30vh] md:max-h-[40vh] max-w-full rounded" />
+						<img
+							src={imageUrlFeedback}
+							alt="Lampiran"
+							class="max-h-[30vh] md:max-h-[40vh] max-w-full rounded"
+						/>
 					</div>
 				{:else}
-					<p class="text-gray-500 italic py-2 md:py-4 text-sm md:text-base">Lampiran tidak tersedia</p>
+					<p class="text-gray-500 italic py-2 md:py-4 text-sm md:text-base">
+						Lampiran tidak tersedia
+					</p>
 				{/if}
 			</div>
 		</div>
@@ -691,7 +880,7 @@
 	.animate-fade-in-up {
 		animation: fade-in-up 0.7s cubic-bezier(0.4, 0, 0.2, 1) both;
 	}
-	
+
 	/* Custom scrollbar styling */
 	.custom-scrollbar::-webkit-scrollbar {
 		width: 6px;
