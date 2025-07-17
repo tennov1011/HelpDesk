@@ -3,9 +3,9 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
   setPersistence,
-  browserLocalPersistence
+  onAuthStateChanged,
+  browserLocalPersistence,
 } from 'firebase/auth';
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
@@ -20,8 +20,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Initialize Firebase only if no apps exist or this is the first initialization
-let app;
+// Initialize Firebase only if no apps exist or this is the first initializations
+export let app;
 let auth;
 
 if (browser) {
@@ -48,6 +48,18 @@ if (browser) {
   // Server-side: create minimal objects to prevent errors
   auth = null;
 }
+
+export const sendPasswordReset = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email);
+    alert("Password reset email sent");
+    return true;
+  } catch (error) {
+    console.error("Password reset error:", error);
+    alert("Password reset error: " + error.message);
+    return false;
+  }
+};
 
 // Create stores for authentication state
 export const isAuthenticated = writable(false);
@@ -192,6 +204,16 @@ export function isManagerRole(role) {
 // Helper function to check if a user is a general manager (can see all tickets)
 export function isGeneralManager(email) {
   return email && email.toLowerCase() === 'general.manager@eltama.com';
+}
+
+// Helper function to check if a user is an HRD admin
+export function isHrdAdmin(email, department) {
+  const isAdmin = email && 
+    (email.toLowerCase() === 'hrd@eltama.com' || 
+     email.toLowerCase() === 'hrdex@eltama.com');
+  const isHrdDept = department && department.toUpperCase() === 'HRD';
+  
+  return isAdmin && isHrdDept;
 }
 
 // Helper function to get approval field based on role

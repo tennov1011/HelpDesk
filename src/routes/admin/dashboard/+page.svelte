@@ -5,6 +5,7 @@
 	import TicketStats from '$lib/component/TicketStats.svelte';
 	import TicketingForm from '$lib/component/TicketingForm.svelte';
 	import QuestionManager from '$lib/component/QuestionManager.svelte';
+	import VehicleManager from '$lib/component/VehicleManager.svelte';
 	import { fetchEmployees } from '$lib/services/employee.js';
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
@@ -14,7 +15,8 @@
 		userRole,
 		userDepartment,
 		userEmail,
-		isGeneralManager
+		isGeneralManager,
+		isHrdAdmin
 	} from '$lib/services/firebaseConfig';
 
 	let tickets = [];
@@ -29,6 +31,7 @@
 	let unsubAuth, unsubRole, unsubDept;
 	let showTicketModal = false;
 	let showQuestionModal = false;
+	let showVehicleModal = false;
 	let ticketUpdates = [];
 	
 	// Filter state for General Manager
@@ -41,6 +44,11 @@
 	userDepartment.subscribe((dept) => {
 		adminDepartment = dept;
 	});
+
+	// Check if current user is HRD admin using the helper function
+	function checkIsHrdAdmin() {
+		return isHrdAdmin($userEmail, adminDepartment);
+	}
 
 	// Fetch all tickets from Directus API
 	async function fetchTickets() {
@@ -76,7 +84,8 @@
 					pic: t.pic,
 					department: t.target_department,
 					departure_time: t.departure_time,
-					estimated_return_time: t.estimated_return_time
+					estimated_return_time: t.estimated_return_time,
+					vehicle_type: t.vehicle_type
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);
@@ -213,6 +222,15 @@
 		showQuestionModal = false;
 	}
 
+	// Buka modal vehicle manager
+	function openVehicleModal() {
+		showVehicleModal = true;
+	}
+	// Tutup modal vehicle manager
+	function closeVehicleModal() {
+		showVehicleModal = false;
+	}
+
 	    // Modal state for survey detail view
     let showDetailModalSurvey = false;
     let selectedSurvey = null;
@@ -333,6 +351,63 @@
 	function handleTicketUpdated(e) {
 		const updated = e.detail.updatedTicket;
 		tickets = tickets.map((t) => (t.rawId === updated.rawId ? { ...t, ...updated } : t));
+		
+		// Check if this is a vehicle borrowing ticket that was just approved
+		if (updated.category === 'Peminjaman Kendaraan' && 
+			updated.status === 'On Progress' && 
+			updated.vehicle_type) {
+			
+			// Update vehicle status to "Dipinjam" in Directus
+			updateVehicleStatus(updated.vehicle_type, 'Dipinjam');
+		}
+		
+		// Check if this is a vehicle borrowing ticket that was just completed
+		if (updated.category === 'Peminjaman Kendaraan' && 
+			updated.status === 'Done' && 
+			updated.vehicle_type) {
+			
+			// Update vehicle status back to "Tersedia" in Directus
+			updateVehicleStatus(updated.vehicle_type, 'Tersedia');
+		}
+	}
+	
+	// Function to update vehicle status in Directus
+	async function updateVehicleStatus(vehicleInfo, newStatus) {
+		try {
+			if (!vehicleInfo || typeof vehicleInfo !== 'string') return;
+			
+			// Extract vehicle name from the format "Jenis Nama PlatNomor - Status"
+			const vehicleMatch = vehicleInfo.match(/^([^-]+)/);
+			if (!vehicleMatch) return;
+			
+			const vehicleIdentifier = vehicleMatch[1].trim();
+			const vehicleName = vehicleIdentifier.split(' ')[1] || '';
+			
+			// Find the vehicle in Directus by name
+			const response = await axios.get('https://directus.eltamaprimaindo.com/items/Kendaraan', {
+				headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` },
+				params: {
+					filter: {
+						nama: { _contains: vehicleName }
+					}
+				}
+			});
+			
+			if (response.data && response.data.data && response.data.data.length > 0) {
+				const vehicle = response.data.data[0];
+				
+				// Update the vehicle status
+				await axios.patch(
+					`https://directus.eltamaprimaindo.com/items/Kendaraan/${vehicle.id}`,
+					{ status: newStatus },
+					{ headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` } }
+				);
+				
+				console.log(`Vehicle status updated: ${vehicleInfo} -> ${newStatus}`);
+			}
+		} catch (error) {
+			console.error('Error updating vehicle status:', error);
+		}
 	}
 
 	// Modal state untuk admin's ticket updates
@@ -558,6 +633,14 @@
 				class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl text-center shadow-lg font-semibold transition transform hover:scale-105 animate-fade-in-up"
 				>Kelola Pertanyaan Survey</button
 			>
+			<!-- Tombol Kelola Kendaraan (hanya untuk admin HRD) -->
+			{#if checkIsHrdAdmin()}
+				<button
+					on:click={openVehicleModal}
+					class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-center shadow-lg font-semibold transition transform hover:scale-105 animate-fade-in-up"
+					>Kelola Kendaraan</button
+				>
+			{/if}
 		</div>
 
 		<!-- Tiket Saya (Admin) -->
@@ -874,7 +957,7 @@
             class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-2xl p-4 md:p-6 relative animate-fade-in-up max-h-[95vh] overflow-y-auto"
         >
             <button
-                class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors duration-200"
+                class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
                 on:click={closeDetailModalAdminTicket}
                 aria-label="Tutup"
             >
@@ -1058,6 +1141,23 @@
             >
             <QuestionManager
                 onClose={closeQuestionModal}
+            />
+        </div>
+    </div>
+{/if}
+
+<!-- Modal untuk vehicle manager (hanya untuk admin HRD) -->
+{#if showVehicleModal}
+    <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+    >
+        <div class="bg-white rounded-lg shadow-xl p-0 max-w-4xl w-full relative animate-fade-in-up">
+            <button
+                class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+                on:click={closeVehicleModal}>&times;</button
+            >
+            <VehicleManager
+                onClose={closeVehicleModal}
             />
         </div>
     </div>

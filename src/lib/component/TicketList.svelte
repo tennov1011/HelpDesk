@@ -10,7 +10,8 @@
 	export let showDate = true;
 	export let showDivisions = true;
 	export let showDescription = true;
-	export let showDepartments = false; // tambahkan prop baru
+	export let showDepartments = false; 
+	export let showCategories = true;
 	export let ticketUpdates = [];
 
 	const dispatch = createEventDispatcher();
@@ -206,6 +207,41 @@
 		} else if (
 			ticket.category &&
 			typeof ticket.category === 'string' &&
+			ticket.category.toLowerCase() === 'peminjaman kendaraan'
+		) {
+			// Khusus untuk kategori Peminjaman Kendaraan
+			const vehicleInfo = ticket.vehicle_type || '-';
+			
+			// Set default value for previousBorrower
+			detailFields = [
+				['nama pemohon', ticket.name],
+				['divisi', ticket.division],
+				['email', ticket.email],
+				['kategori', ticket.category],
+				['kendaraan', vehicleInfo],
+				['peminjam sebelumnya', 'Mencari data...'],
+				['detail', ticket.ticket],
+				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
+				['PIC', ticket.pic]
+			];
+			
+			// Immediately show the modal with loading state for previousBorrower
+			if (isAdmin) {
+				dispatch('openDetail', { ticket, detailFields });
+			} else {
+				showDetailModal = true;
+			}
+			
+			// Then fetch previous borrower data asynchronously
+			if (isAdmin && vehicleInfo) {
+				fetchPreviousBorrower(vehicleInfo, ticket);
+			}
+			
+			// Return early to prevent the code after the if-else block from executing
+			return;
+		} else if (
+			ticket.category &&
+			typeof ticket.category === 'string' &&
 			ticket.category.toLowerCase() === 'lainnya'
 		) {
 			detailFields = [
@@ -225,6 +261,117 @@
 			dispatch('openDetail', { ticket, detailFields });
 		} else {
 			showDetailModal = true;
+		}
+	}
+	
+	// Fungsi untuk mengambil data peminjam sebelumnya
+	async function fetchPreviousBorrower(vehicleInfo, currentTicket) {
+		if (!vehicleInfo || typeof vehicleInfo !== 'string') return;
+		
+		try {
+			// Ekstrak nama kendaraan dari format "Jenis Nama PlatNomor - Status"
+			const vehicleMatch = vehicleInfo.match(/^([^-]+)/);
+			if (!vehicleMatch) return;
+			
+			const vehicleIdentifier = vehicleMatch[1].trim();
+			
+			// Cari tiket peminjaman kendaraan sebelumnya dengan kendaraan yang sama
+			// dan status tiket sudah "Done" (telah selesai) atau "On Progress" (sedang dipinjam)
+			const response = await axios.get(`${DIRECTUS_URL}/items/TicketForm`, {
+				headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
+				params: {
+					filter: {
+						category: { _eq: 'Peminjaman Kendaraan' },
+						vehicle_type: { _contains: vehicleIdentifier },
+						status: { _in: ['Done', 'On Progress'] }
+					},
+					sort: ['-date_created'],
+					limit: 5 // Ambil lebih banyak untuk memastikan kita bisa mendapatkan peminjam sebelumnya jika ada
+				}
+			});
+			
+			// Default value if no previous borrower is found
+			let previousBorrowerValue = 'Tidak ada data';
+			
+			if (response.data && response.data.data && response.data.data.length > 0) {
+				// Cek apakah kendaraan sedang dipinjam (status "Dipinjam")
+				// Jika sedang dipinjam, cari dari data kendaraan di Directus
+				const vehicleResponse = await axios.get(`${DIRECTUS_URL}/items/Kendaraan`, {
+					headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
+					params: {
+						filter: {
+							nama: { _contains: vehicleIdentifier.split(' ')[1] || '' },
+							status: { _eq: 'Dipinjam' }
+						}
+					}
+				});
+				
+				let lastBorrower = null;
+				
+				// Jika kendaraan ditemukan dengan status "Dipinjam"
+				if (vehicleResponse.data && vehicleResponse.data.data && vehicleResponse.data.data.length > 0) {
+					// Filter out current ticket if it exists
+					const filteredTickets = response.data.data.filter(ticket => 
+						ticket.id !== currentTicket.id && ticket.status === 'On Progress'
+					);
+					
+					if (filteredTickets.length > 0) {
+						lastBorrower = filteredTickets[0]; // Peminjam saat ini
+					}
+				} 
+				
+				// If no active borrower found or vehicle not in "Dipinjam" status, look for last completed borrower
+				if (!lastBorrower) {
+					// Filter out current ticket if it exists and get completed tickets
+					const completedTickets = response.data.data.filter(ticket => 
+						ticket.id !== currentTicket.id && ticket.status === 'Done'
+					);
+					
+					if (completedTickets.length > 0) {
+						lastBorrower = completedTickets[0]; // Peminjam terakhir yang sudah selesai
+					}
+				}
+				
+				// If a previous borrower was found, update the value
+				if (lastBorrower) {
+					const status = lastBorrower.status === 'On Progress' ? 'Sedang Meminjam' : 'Terakhir Meminjam';
+					previousBorrowerValue = `${lastBorrower.name || 'Tidak diketahui'} (${status}: ${formatDate(lastBorrower.date_created)})`;
+				}
+			}
+			
+			// Create a new detailFields array with the updated previousBorrower value
+			const updatedDetailFields = detailFields.map(field => {
+				if (field[0] === 'peminjam sebelumnya') {
+					return ['peminjam sebelumnya', previousBorrowerValue];
+				}
+				return field;
+			});
+			
+			// Update detailFields with the new array
+			detailFields = updatedDetailFields;
+			
+			// Update the UI if the modal is still open
+			if (isAdmin && selectedTicket && selectedTicket.id === currentTicket.id) {
+				dispatch('openDetail', { ticket: currentTicket, detailFields });
+			}
+			
+		} catch (error) {
+			console.error('Error fetching previous borrower:', error);
+			
+			// Update detailFields with error message
+			const updatedDetailFields = detailFields.map(field => {
+				if (field[0] === 'peminjam sebelumnya') {
+					return ['peminjam sebelumnya', 'Error: Gagal mengambil data'];
+				}
+				return field;
+			});
+			
+			detailFields = updatedDetailFields;
+			
+			// Update the UI if the modal is still open
+			if (isAdmin && selectedTicket && selectedTicket.id === currentTicket.id) {
+				dispatch('openDetail', { ticket: currentTicket, detailFields });
+			}
 		}
 	}
 
@@ -257,7 +404,17 @@
 	}
 
 	function getStatusBtn(ticket) {
-		return (tempStatus[ticket.id] || ticket.status || '').toLowerCase();
+		// Mendapatkan status tiket dari tempStatus atau status tiket langsung
+		const status = (tempStatus[ticket.id] || ticket.status || '').toLowerCase();
+		
+		// Jika kategori tiket adalah Peminjaman Kendaraan, tampilkan label khusus
+		if (ticket.category && ticket.category.toLowerCase() === 'peminjaman kendaraan') {
+			if (status === 'on progress') return 'dipinjam';
+			if (status === 'done') return 'dikembalikan';
+		}
+		
+		// Untuk kategori lain, kembalikan status asli
+		return status;
 	}
 
 	// Fungsi tutup modal update
@@ -767,6 +924,9 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 					{#if showDescription}
 						<th class="text-center">Deskripsi</th>
 					{/if}
+					{#if showCategories}
+						<th class="text-center hidden md:table-cell">Kategori</th>
+					{/if}
 
 					<!-- Desktop columns (hidden on mobile) -->
 					{#if showPriority}
@@ -818,6 +978,9 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 								<!-- </div> -->
 							</td>
 						{/if}
+						{#if showCategories}
+							<td class="text-center hidden md:table-cell">{ticket.category}</td>
+						{/if}
 
 						<!-- Desktop columns (hidden on mobile) -->
 						{#if showPriority}
@@ -838,15 +1001,19 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 								<button
 									class={`px-2 py-1 rounded font-semibold transition 
 	              					${getStatusColor(tempStatus[ticket.id] || ticket.status)}
-	                				${['done', 'rejected'].includes(getStatusBtn(ticket)) ? ' cursor-default' : ' cursor-pointer'}`}
+	                				${['done', 'rejected', 'dikembalikan'].includes(getStatusBtn(ticket)) ? ' cursor-default' : ' cursor-pointer'}`}
 									on:click={() => openUpdateModal(ticket)}
 									disabled={updatingStatusId === ticket.id ||
-										['done', 'rejected'].includes(getStatusBtn(ticket))}
+										['done', 'rejected', 'dikembalikan'].includes(getStatusBtn(ticket))}
 								>
 									{#if getStatusBtn(ticket) === 'done'}
 										Done
 									{:else if getStatusBtn(ticket) === 'rejected'}
 										Rejected
+									{:else if getStatusBtn(ticket) === 'dipinjam'}
+										Dipinjam
+									{:else if getStatusBtn(ticket) === 'dikembalikan'}
+										Dikembalikan
 									{:else}
 										Update
 									{/if}
@@ -855,7 +1022,17 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 								<span
 									class={`inline-block px-2 py-1 rounded font-semibold text-xs ${getStatusColor(ticket.status)}`}
 								>
-									{ticket.status}
+									{#if ticket.category && ticket.category.toLowerCase() === 'peminjaman kendaraan'}
+										{#if ticket.status && ticket.status.toLowerCase() === 'on progress'}
+											Dipinjam
+										{:else if ticket.status && ticket.status.toLowerCase() === 'done'}
+											Dikembalikan
+										{:else}
+											{ticket.status}
+										{/if}
+									{:else}
+										{ticket.status}
+									{/if}
 								</span>
 							{/if}
 						</td>
@@ -1165,16 +1342,31 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 				<label for="update-status" class="block text-sm font-medium text-gray-700 mb-1">
 					Status
 				</label>
-				<select
-					id="update-status"
-					class="border rounded px-2 py-1 w-full text-sm"
-					bind:value={updateForm.status}
-				>
-					<option value="Pending">Pending</option>
-					<option value="On Progress">On Progress</option>
-					<option value="Done">Done</option>
-					<option value="Rejected">Rejected</option>
-				</select>
+				{#if updatingTicket && updatingTicket.category && updatingTicket.category.toLowerCase() === 'peminjaman kendaraan'}
+					<!-- Opsi status khusus untuk Peminjaman Kendaraan -->
+					<select
+						id="update-status"
+						class="border rounded px-2 py-1 w-full text-sm"
+						bind:value={updateForm.status}
+					>
+						<option value="Pending">Pending</option>
+						<option value="On Progress">Dipinjam</option>
+						<option value="Done">Dikembalikan</option>
+						<option value="Rejected">Rejected</option>
+					</select>
+				{:else}
+					<!-- Opsi status untuk kategori lainnya -->
+					<select
+						id="update-status"
+						class="border rounded px-2 py-1 w-full text-sm"
+						bind:value={updateForm.status}
+					>
+						<option value="Pending">Pending</option>
+						<option value="On Progress">On Progress</option>
+						<option value="Done">Done</option>
+						<option value="Rejected">Rejected</option>
+					</select>
+				{/if}
 			</div>
 			<div class="flex justify-end gap-2 mt-4">
 				<button

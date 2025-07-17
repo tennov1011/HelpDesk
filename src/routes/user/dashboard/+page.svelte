@@ -63,7 +63,8 @@
 					status: t.status,
 					target_department: t.target_department,
 					departure_time: t.departure_time,
-					estimated_return_time: t.estimated_return_time
+					estimated_return_time: t.estimated_return_time,
+					vehicle_type: t.vehicle_type
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);
@@ -352,7 +353,7 @@
 		Memuat data karyawan...
 	</div>
 {:else}
-	<div class="p-4 max-w-6xl mx-auto animate-fade-in">
+	<div class="p-4 max-w-7xl mx-auto animate-fade-in">
 		<div class="flex justify-between items-center mb-6">
 			<h1 class="text-xl font-bold drop-shadow text-blue-800">
 				Halo {myEmployee.nama_karyawan}, ada yang bisa dibantu ?

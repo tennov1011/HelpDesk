@@ -24,11 +24,18 @@
 	let label = '';
 	let location = '';
 	
+	// Vehicle Borrowing field
+	let vehicle_type = '';
+	
 	// Permission to Leave fields
 	let departure_time = '';
 	let estimated_return_time = '';
 	
 	export let employee = null;
+
+	// Vehicles data from Directus
+	let vehicles = [];
+	let isLoadingVehicles = false;
 
 	const departmentOptions = [
 		'IT',
@@ -102,13 +109,25 @@
 		'Drone',
 		'Mobile Data Terminal (MDT)'
 	];
+	// Legacy vehicle options as fallback
+	const legacyVehicleTypeOptions = [
+		'Mobil MUX B 1104 KJF',
+		'Mobil Avanza B 2566 KVG',
+		'Mobil Xenia F 1540 NE',
+		'Mobil Luxio F 1227 FE',
+		'Mobil Mazda B 9080 KUD',
+		'TruckBox F 8817 MB',
+		'Mobil Mitsubishi L300 F 8725 MB',
+		'Truck Double F 8156 MC',
+		'Motor'
+	];
 	const priorityOptions = ['Rendah', 'Sedang', 'Tinggi', 'Darurat'];
 
 	const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL;
 	const DIRECTUS_TOKEN = import.meta.env.VITE_DIRECTUS_TOKEN;
 
 	function getDirectusUrl(path) {
-		if (!DIRECTUS_URL || !DIRECTUS_URL === 'undefined') {
+		if (!DIRECTUS_URL || DIRECTUS_URL === 'undefined') {
 			throw new Error('Directus URL belum diatur di .env');
 		}
 		return `${DIRECTUS_URL.replace(/\/$/, '')}${path}`;
@@ -123,6 +142,54 @@
 		notificationTimeout = setTimeout(() => {
 			notification.set({ show: false, type: '', message: '' });
 		}, 1000);
+	}
+
+	// Fetch vehicles from Directus
+	async function fetchVehicles() {
+		isLoadingVehicles = true;
+		try {
+			const res = await axios.get(getDirectusUrl('/items/Kendaraan'), {
+				headers: {
+					Authorization: `Bearer ${DIRECTUS_TOKEN}`
+				}
+			});
+			vehicles = res.data.data || [];
+			console.log('Loaded vehicles:', vehicles);
+		} catch (error) {
+			console.error('Error fetching vehicles:', error);
+			// Fallback to legacy options if API fails
+			vehicles = legacyVehicleTypeOptions.map(name => ({
+				nama: name,
+				jenis: 'Legacy',
+				plat_nomor: '',
+				status: 'Tersedia'
+			}));
+		} finally {
+			isLoadingVehicles = false;
+		}
+	}
+
+	// Format vehicle option text
+	function formatVehicleOption(vehicle) {
+		return `${vehicle.jenis} ${vehicle.nama} ${vehicle.plat_nomor}`;
+	}
+
+	// Format vehicle status for display
+	function formatVehicleStatus(vehicle) {
+		return vehicle.status;
+	}
+
+	// Check if vehicle is available
+	function isVehicleAvailable(vehicle) {
+		return vehicle.status !== 'Service' && vehicle.status !== 'Rusak' && vehicle.status !== 'Dipinjam';
+	}
+
+	// Fungsi untuk mendapatkan status kendaraan
+	function getVehicleStatus(vehicleOption) {
+		const vehicle = vehicles.find(v => 
+			formatVehicleOption(v) === vehicleOption
+		);
+		return vehicle ? vehicle.status : '';
 	}
 
 	let isLoading = false;
@@ -163,6 +230,7 @@
 			ticket,
 			desc,
 			device,
+			vehicle_type,
 			url_name_app,
 			priority,
 			browser,
@@ -210,6 +278,12 @@
 			delete data.estimated_return_time;
 		}
 
+		if (data.category === 'Peminjaman Kendaraan' && !vehicle_type) {
+			showNotification('error', 'Jenis Kendaraan harus diisi');
+			isLoading = false;
+			return;
+		}
+
 		try {
 			await axios.post(getDirectusUrl('/items/TicketForm'), data, {
 				headers: {
@@ -229,6 +303,7 @@
 			device = '';
 			label = '';
 			location = '';
+			vehicle_type = '';
 			departure_time = '';
 			estimated_return_time = '';
 			contactPhone = '';
@@ -266,7 +341,17 @@
 	onMount(() => {
 		document.addEventListener('keydown', handleKeydown);
 		document.addEventListener('mousedown', handleClickOutside);
+		
+		// Fetch vehicles when component mounts
+		if (category === 'Peminjaman Kendaraan' || category === '') {
+			fetchVehicles();
+		}
 	});
+
+	// Watch category changes to fetch vehicles when needed
+	$: if (category === 'Peminjaman Kendaraan' && vehicles.length === 0) {
+		fetchVehicles();
+	}
 
 	onDestroy(() => {
 		document.removeEventListener('keydown', handleKeydown);
@@ -305,7 +390,7 @@
 	</div>
 {/if}
 
-<div class="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-center justify-center p-2 sm:p-4">
+<div class="">
 	<div
 		class="w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl mx-auto bg-white p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-2xl shadow-2xl relative overflow-y-auto max-h-[95vh] sm:max-h-[90vh]"
 	>
@@ -327,6 +412,7 @@
 					<option value="Sistem">Sistem</option>
 					<option value="Asset">Asset</option>
 					<option value="Izin Keluar">Izin Keluar</option>
+					<option value="Peminjaman Kendaraan">Peminjaman Kendaraan</option>
 					<option value="Lainnya">Lainnya</option>
 				</select>
 			</div>
@@ -407,6 +493,38 @@
 							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
 							placeholder="Contoh: Kantor Pusat Lantai 2, Gudang A"
 						/>
+					</div>
+				</div>
+			{:else if category === 'Peminjaman Kendaraan'}
+				<!-- Vehicle Borrowing Inputs -->
+				<div class="flex flex-col gap-2 sm:gap-4">
+					<div>
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="vehicle-type-select">
+							Jenis Kendaraan
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<select id="vehicle-type-select" bind:value={vehicle_type} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+							<option value="" disabled>
+								{isLoadingVehicles ? 'Memuat data kendaraan...' : 'Pilih Jenis Kendaraan'}
+							</option>
+							
+							{#if vehicles.length > 0}
+								{#each vehicles as vehicle}
+									<option 
+										value={formatVehicleOption(vehicle)} 
+										disabled={!isVehicleAvailable(vehicle)}
+									>
+										{formatVehicleOption(vehicle)} - {formatVehicleStatus(vehicle)}
+									</option>
+								{/each}
+							{/if}
+						</select>
+						
+						{#if vehicles.some(v => !isVehicleAvailable(v))}
+							<p class="text-xs text-gray-500 mt-1">
+								Kendaraan dengan status Service, Rusak, atau Dipinjam tidak dapat dipilih.
+							</p>
+						{/if}
 					</div>
 				</div>
 			{:else if category === 'Izin Keluar'}

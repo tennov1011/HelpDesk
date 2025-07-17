@@ -38,7 +38,7 @@
 							if (roleValue) {
 								if (roleValue === 'admin') {
 									goto('/admin/dashboard');
-								} else{
+								} else {
 									goto('/user/dashboard');
 								}
 								unsubscribeRole(); // Unsubscribe setelah redirect
@@ -100,8 +100,11 @@
 
 <svelte:head>
 	<title>Login - Feedback Form</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-	<meta name="theme-color" content="#9333ea">
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+	/>
+	<meta name="theme-color" content="#9333ea" />
 	<link
 		href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css"
 		rel="stylesheet"
@@ -117,13 +120,20 @@
 			Eltama Prima Indo
 		</h1>
 	</div>
-	
+
 	<!-- Main Content Container -->
 	<div class="w-full max-w-sm sm:max-w-md lg:max-w-lg space-y-6 sm:space-y-8">
 		<!-- Header -->
 		<div class="text-center">
-			<div class="mx-auto h-12 w-12 sm:h-16 sm:w-16 bg-white rounded-full flex items-center justify-center mb-4 sm:mb-6">
-				<svg class="h-6 w-6 sm:h-8 sm:w-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<div
+				class="mx-auto h-12 w-12 sm:h-16 sm:w-16 bg-white rounded-full flex items-center justify-center mb-4 sm:mb-6"
+			>
+				<svg
+					class="h-6 w-6 sm:h-8 sm:w-8 text-purple-500"
+					fill="none"
+					stroke="currentColor"
+					viewBox="0 0 24 24"
+				>
 					<path
 						stroke-linecap="round"
 						stroke-linejoin="round"
@@ -145,7 +155,11 @@
 						<div class="bg-purple-100 border-l-4 border-purple-400 p-3 sm:p-4 rounded-r-lg">
 							<div class="flex">
 								<div class="flex-shrink-0">
-									<svg class="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" viewBox="0 0 20 20" fill="currentColor">
+									<svg
+										class="h-4 w-4 sm:h-5 sm:w-5 text-purple-400"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+									>
 										<path
 											fill-rule="evenodd"
 											d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -162,11 +176,16 @@
 
 					<!-- Email Field -->
 					<div>
-						<label for="email" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+						<label
+							for="email"
+							class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
+						>
 							Email
 						</label>
 						<div class="relative">
-							<div class="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+							<div
+								class="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none"
+							>
 								<svg
 									class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
 									fill="none"
@@ -198,11 +217,16 @@
 
 					<!-- Password Field -->
 					<div>
-						<label for="password" class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+						<label
+							for="password"
+							class="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2"
+						>
 							Password
 						</label>
 						<div class="relative">
-							<div class="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none">
+							<div
+								class="absolute inset-y-0 left-0 pl-2 sm:pl-3 flex items-center pointer-events-none"
+							>
 								<svg
 									class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400"
 									fill="none"
@@ -262,7 +286,12 @@
 								</svg>
 								<span class="text-sm sm:text-base">Mengirim...</span>
 							{:else if !login}
-								<svg class="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg
+									class="h-4 w-4 sm:h-5 sm:w-5 mr-2"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
@@ -272,7 +301,12 @@
 								</svg>
 								<span class="text-sm sm:text-base">Memuat...</span>
 							{:else}
-								<svg class="h-4 w-4 sm:h-5 sm:w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<svg
+									class="h-4 w-4 sm:h-5 sm:w-5 mr-2"
+									fill="none"
+									stroke="currentColor"
+									viewBox="0 0 24 24"
+								>
 									<path
 										stroke-linecap="round"
 										stroke-linejoin="round"
@@ -283,6 +317,13 @@
 								<span class="text-sm sm:text-base">Masuk</span>
 							{/if}
 						</button>
+						<div class="flex justify-center">
+							<a
+								href="/forgot-password"
+								class="mt-4 text-sm sm:text-base text-purple-600 hover:text-purple-700"
+								>Lupa Password?</a
+							>
+						</div>
 					</div>
 				</form>
 			</div>
@@ -357,11 +398,11 @@
 	/* Mobile-specific optimizations */
 	@media (max-width: 640px) {
 		/* Ensure forms are properly sized on mobile */
-		input[type="email"],
-		input[type="password"] {
+		input[type='email'],
+		input[type='password'] {
 			font-size: 16px; /* Prevents zoom on iOS */
 		}
-		
+
 		/* Better touch targets */
 		button {
 			min-height: 44px;

@@ -211,7 +211,7 @@
 	</div>
 {/if}
 
-<div class="fixed inset-0 bg-black bg-opacity-40 z-40 flex items-center justify-center p-2 sm:p-4">
+<div class="">
 	<div class="w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-2xl mx-auto bg-white p-3 sm:p-6 md:p-8 rounded-lg sm:rounded-xl shadow-2xl relative overflow-y-auto max-h-[95vh] sm:max-h-[90vh]">
 		<!-- Close button -->
 		<button
