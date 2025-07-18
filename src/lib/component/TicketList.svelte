@@ -538,65 +538,84 @@
 		}
 
 		try {
-			// Create new PDF with A5 landscape format (210x148 mm)
+			// Create new PDF with half-A4 portrait format (148x210 mm)
 			const doc = new jsPDF({
-				orientation: 'landscape',
-				unit: 'mm',
-				format: 'a5'
+				orientation: "portrait",
+				unit: "mm",
+				format: [148, 210]
 			});
 
+			// Calculate usable width with margins
+			const pageWidth = doc.internal.pageSize.getWidth();
+			const pageHeight = doc.internal.pageSize.getHeight();
+			const margin = 10;
+			const usableWidth = pageWidth - 2 * margin;
+			
 			// Set font
 			doc.setFont('helvetica');
 
-			// Header
-			doc.setFontSize(12); // Reduced for A5
+			// Header - margin atas 7mm dari tepi halaman
+			doc.setFontSize(12); // Reduced font size
 			doc.setFont('helvetica', 'bold');
-			doc.text('SURAT IZIN KELUAR', 105, 15, { align: 'center' });
+			doc.text('SURAT IZIN KELUAR', pageWidth / 2, 7, { align: 'center' }); // Margin atas 7mm
 
-			// Garis bawah header
+			// Garis bawah header - 5mm di bawah teks header
 			doc.setDrawColor(0, 0, 0);
 			doc.setLineWidth(0.5);
-			doc.line(15, 18, 195, 18);
+			doc.line(margin, 12, pageWidth - margin, 12); // 5mm di bawah teks header (7+5=12)
 
 			// Reset font
 			doc.setFont('helvetica', 'normal');
-			doc.setFontSize(8); // Reduced font size for A5
+			doc.setFontSize(8); // Reduced font size for better fit
 
-			// Informasi Perusahaan
+			// Informasi Perusahaan - compressed spacing
 			doc.setFont('helvetica', 'bold');
-			doc.text('PT. ELTAMA PRIMA INDO', 15, 25);
+			doc.text('PT. ELTAMA PRIMA INDO', margin, 18); // Adjusted position
 			doc.setFont('helvetica', 'normal');
 			doc.text(
-				'Jl. Nangka No.88, RW.3, Bojong Kulur, Kec. Gn. Putri, Kabupaten Bogor, Jawa Barat 16969',
-				15,
-				30
+				'Jl. Nangka No.88, RW.3, Bojong Kulur, Kec. Gn. Putri',
+				margin,
+				22 // Adjusted position
 			);
-			doc.text('Telp: (021) 827 45', 15, 35);
+			doc.text('Kabupaten Bogor, Jawa Barat 16969', margin, 26); // Adjusted position
+			doc.text('Telp: (021) 827 45', margin, 30); // Adjusted position
 
-			// Tanggal surat
+			// Tanggal surat - aligned to the right
 			const currentDate = new Date().toLocaleDateString('id-ID', {
 				day: 'numeric',
 				month: 'long',
 				year: 'numeric'
 			});
-			doc.text(`Jakarta, ${currentDate}`, 150, 25);
+			doc.text(`Bogor, ${currentDate}`, pageWidth - margin, 30, { align: 'right' });
 
-			// Konten surat
-			let yPos = 40;
+			// Tambahkan Dokumen ID dan Dicetak pada tepat di bawah tanggal, rata kanan
+			doc.text(`Dokumen ID: ${ticket.id}`, pageWidth - margin, 34, { align: 'right' });
+			doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, pageWidth - margin, 38, { align: 'right' });
 
-			doc.text('Yang bertanda tangan di bawah ini:', 15, yPos);
-			yPos += 6;
+			// Konten surat - compressed spacing
+			let yPos = 38; // Adjusted position
 
-			// Data karyawan
-			doc.text(`Nama               : ${ticket.name || '-'}`, 25, yPos);
-			yPos += 5;
-			doc.text(`Divisi             : ${ticket.division || '-'}`, 25, yPos);
-			yPos += 5;
-			doc.text(`Email              : ${ticket.email || '-'}`, 25, yPos);
-			yPos += 8;
+			doc.text('Yang bertanda tangan di bawah ini:', margin, yPos);
+			yPos += 5; // Reduced from 6 to 5
 
-			doc.text('Dengan ini mengajukan izin keluar dengan rincian sebagai berikut:', 15, yPos);
-			yPos += 6;
+			// Data karyawan - using full width
+			const labelWidth = 25; // Width for labels - reduced from 30 to 25
+			const valueX = margin + labelWidth; // X position for values
+
+			doc.text(`Nama`, margin, yPos);
+			doc.text(`: ${ticket.name || '-'}`, valueX, yPos);
+			yPos += 4; // Reduced from 5 to 4
+			
+			doc.text(`Divisi`, margin, yPos);
+			doc.text(`: ${ticket.division || '-'}`, valueX, yPos);
+			yPos += 4; // Reduced from 5 to 4
+			
+			doc.text(`Email`, margin, yPos);
+			doc.text(`: ${ticket.email || '-'}`, valueX, yPos);
+			yPos += 6; // Reduced from 8 to 6
+
+			doc.text('Dengan ini mengajukan izin keluar dengan rincian sebagai berikut:', margin, yPos);
+			yPos += 5; // Reduced from 6 to 5
 
 			// Detail izin keluar
 			const departureTime = ticket.departure_time
@@ -613,54 +632,79 @@
 					})
 				: '-';
 
-			doc.text(`Jam Keluar         : ${departureTime}`, 25, yPos);
-			yPos += 5;
-			doc.text(`Estimasi Jam Kembali : ${returnTime}`, 25, yPos);
-			yPos += 5;
-			doc.text(`Keperluan          : ${ticket.ticket || '-'}`, 25, yPos);
-			yPos += 8;
+			doc.text(`Jam Keluar`, margin, yPos);
+			doc.text(`: ${departureTime}`, valueX, yPos);
+			yPos += 4; // Reduced from 5 to 4
+			
+			doc.text(`Estimasi Kembali`, margin, yPos);
+			doc.text(`: ${returnTime}`, valueX, yPos);
+			yPos += 4; // Reduced from 5 to 4
+			
+			doc.text(`Keperluan`, margin, yPos);
+			
+			// Handle multiline purpose text with proper wrapping
+			// Fixed bug: Ensure text wraps within margins by using correct width calculation
+			const purposeText = ticket.ticket || '-';
+			// Use strict width calculation to ensure text stays within margins
+			const strictWidth = usableWidth - (valueX - margin) - 2; // Subtract 2mm for safety margin
+			const splitPurpose = doc.splitTextToSize(purposeText, strictWidth);
+			
+			doc.text(`: ${splitPurpose[0]}`, valueX, yPos);
+			
+			// If purpose text has multiple lines
+			if (splitPurpose.length > 1) {
+				for (let i = 1; i < splitPurpose.length; i++) {
+					yPos += 4; // Reduced from 5 to 4
+					doc.text(`${splitPurpose[i]}`, valueX, yPos);
+				}
+			}
+			
+			yPos += 8; // Reduced from 10 to 8
 
-			// Tanda tangan
-			doc.text('Hormat kami,', 15, yPos);
-			yPos += 10;
+			// Tanda tangan section
+			doc.text('Hormat kami,', margin, yPos);
+			yPos += 8; // Reduced from 10 to 8
 
-			// Kolom tanda tangan - layout baru dengan 4 kolom untuk A5 landscape
-			// Kolom 1: Yang Mengajukan (Karyawan)
-			doc.text('Yang Mengajukan,', 25, yPos);
-
-			// Kolom 2: Atasan Divisi
-			doc.text('Atasan Divisi,', 75, yPos);
-
-			// Kolom 3: HRD
-			doc.text('HRD,', 125, yPos);
-
-			// Kolom 4: Security
-			doc.text('Security,', 175, yPos);
-
-			yPos += 14; // Spasi untuk tanda tangan
-
+			// Calculate positions for 4 signatures in a single row
+			const signatureWidth = usableWidth / 4;
+			const signaturePositions = [
+				margin + signatureWidth / 2,
+				margin + signatureWidth * 1.5,
+				margin + signatureWidth * 2.5,
+				margin + signatureWidth * 3.5
+			];
+			
 			// Get first name for the signature
 			const firstName = getFirstName(ticket.name);
+			
+			// Signature titles
+			doc.setFontSize(7); // Reduced from 8 to 7
+			doc.text('Yang Mengajukan,', signaturePositions[0], yPos, { align: 'center' });
+			doc.text('Atasan Divisi,', signaturePositions[1], yPos, { align: 'center' });
+			doc.text('HRD,', signaturePositions[2], yPos, { align: 'center' });
+			doc.text('Security,', signaturePositions[3], yPos, { align: 'center' });
+			
+			yPos += 12; // Reduced from 15 to 12
+			
+			// Names below signature lines
+			doc.text(`(${firstName || '...........'})`, signaturePositions[0], yPos, { align: 'center' });
+			doc.text('(............)', signaturePositions[1], yPos, { align: 'center' });
+			doc.text('(............)', signaturePositions[2], yPos, { align: 'center' });
+			doc.text('(............)', signaturePositions[3], yPos, { align: 'center' });
+			
+			yPos += 4; // Reduced from 5 to 4
+			
+			// Position/title labels
+			doc.setFontSize(6); // Reduced from 7 to 6
+			doc.text('Karyawan', signaturePositions[0], yPos, { align: 'center' });
+			doc.text('Menyetujui', signaturePositions[1], yPos, { align: 'center' });
+			doc.text('Mengetahui', signaturePositions[2], yPos, { align: 'center' });
+			doc.text('Pemeriksaan', signaturePositions[3], yPos, { align: 'center' });
 
-			// Nama-nama di bawah garis tanda tangan (hanya nama depan untuk pemohon)
-			doc.text(`(${firstName || '..................'})`, 25, yPos);
-			doc.text('(....................)', 75, yPos);
-			doc.text('(....................)', 125, yPos);
-			doc.text('(....................)', 175, yPos);
-
-			yPos += 5;
-
-			// Label posisi/jabatan
-			doc.setFontSize(7);
-			doc.text('Karyawan', 25, yPos);
-			doc.text('Menyetujui', 75, yPos);
-			doc.text('Mengetahui', 125, yPos);
-			doc.text('Pemeriksaan', 175, yPos);
-
-			// Footer
-			doc.setFontSize(6);
-			doc.text(`Dokumen ID: ${ticket.id}`, 15, 130);
-			doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 15, 134);
+			// Add invisible border to enforce margins during printing
+			doc.setDrawColor(255, 255, 255); // White color (invisible)
+			doc.setLineWidth(0.1);
+			doc.rect(0, 0, pageWidth, pageHeight);
 
 			// Simpan PDF
 			const fileName = `Izin_Keluar_${firstName?.replace(/\s+/g, '_') || 'Unknown'}_${ticket.id}.pdf`;
