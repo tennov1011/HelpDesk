@@ -22,7 +22,7 @@
     // Daftar departemen
     const departments = [
         'IT',
-        'HR',
+        'HRD',
         'Finance',
         'Marketing',
         'Procurement',

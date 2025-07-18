@@ -31,6 +31,12 @@
 		dispatch('openDetailSurvey', { survey });
 	}
 
+	function handleDeleteSurvey(survey) {
+		if (confirm(`Apakah Anda yakin ingin menghapus survey dari ${survey.name}?`)) {
+			dispatch('deleteSurvey', { survey });
+		}
+	}
+
 	function formatDate(dateStr) {
 		if (!dateStr) return '';
 		const d = new Date(dateStr);
@@ -186,9 +192,15 @@
 								<td class="px-6 py-4 whitespace-nowrap text-center">
 									<button
 										on:click={() => handleDetailSurvey(survey)}
-										class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition"
+										class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition mr-2"
 									>
 										Detail
+									</button>
+									<button
+										on:click={() => handleDeleteSurvey(survey)}
+										class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition"
+									>
+										Hapus
 									</button>
 								</td>
 							</tr>
@@ -235,12 +247,18 @@
 						</div>
 					</div>
 					
-					<div class="flex justify-end">
+					<div class="flex justify-end gap-2">
 						<button
 							on:click={() => handleDetailSurvey(survey)}
 							class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition"
 						>
 							Detail
+						</button>
+						<button
+							on:click={() => handleDeleteSurvey(survey)}
+							class="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition"
+						>
+							Hapus
 						</button>
 					</div>
 				</div>

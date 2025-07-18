@@ -245,6 +245,25 @@
         showDetailModalSurvey = false;
         selectedSurvey = null;
     }
+    
+    // Handle survey deletion
+    async function handleDeleteSurvey(e) {
+        const survey = e.detail.survey;
+        try {
+            await axios.delete(
+                `https://directus.eltamaprimaindo.com/items/Survey/${survey.rawId}`,
+                {
+                    headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` }
+                }
+            );
+            // Remove the deleted survey from the surveys array
+            surveys = surveys.filter(s => s.rawId !== survey.rawId);
+            alert('Survey berhasil dihapus');
+        } catch (error) {
+            console.error('Error deleting survey:', error);
+            alert('Gagal menghapus survey. Silakan coba lagi.');
+        }
+    }
 	// Modal image state and handlers for ticket attachments
 	let showImageModalTicket = false;
 	let imageUrlTicket = '';
@@ -666,10 +685,8 @@
 					on:openUpdateImage={handleOpenUpdateImageForAdminTickets}
 				/>
 			{/if}
-		</div>
 
 		<!-- Tickets Table -->
-		<div class="bg-white p-4 md:rounded-xl shadow-lg mb-6 animate-fade-in-up mx-0 md:mx-0 w-full">
 			<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
 				<h2 class="text-xl font-semibold ml-2 text-blue-700 font-mono">
 					{isGeneralManager($userEmail) ? 'List Tiket (Semua Departemen)' : 'List Tiket'}
@@ -741,6 +758,7 @@
 				surveys={filteredSurveys}
 				showDepartments={isGeneralManager($userEmail)}
 				on:openDetailSurvey={handleOpenDetailSurvey}
+				on:deleteSurvey={handleDeleteSurvey}
 			/>
 		</div>
 	</div>
@@ -1242,7 +1260,85 @@
     </div>
 {/if}
 
+<!-- Modal for admin's ticket update detail -->
+{#if showUpdateDetailModalAdmin}
+	<div class="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+		<div
+			class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-xl p-4 md:p-8 relative animate-fade-in-up"
+		>
+			<button
+				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-red-500 transition"
+				on:click={() => showUpdateDetailModalAdmin = false}
+				aria-label="Tutup"
+			>
+				&times;
+			</button>
+			<h2
+				class="text-lg md:text-xl font-extrabold mb-4 md:mb-6 text-blue-700 text-center drop-shadow"
+			>
+				Track Ticket
+			</h2>
+			<!-- Conditional: Tampilkan daftar update atau empty state -->
+			{#if selectedTicketUpdatesAdmin.length > 0}
+				<div class="space-y-4 md:space-y-6 max-h-[70vh] md:max-h-96 overflow-y-auto pr-2">
+					{#each [...selectedTicketUpdatesAdmin].sort((a, b) => new Date(b.date) - new Date(a.date)) as update, idx}
+						<div class="border-b pb-3 md:pb-4">
+							<div
+								class="grid grid-cols-1 md:grid-cols-2 gap-x-4 md:gap-x-8 gap-y-1 md:gap-y-2 mb-2"
+							>
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Tanggal Update:</div>
+								<div class="text-gray-800 text-sm md:text-base">{formatDate(update.date)}</div>
 
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Deskripsi:</div>
+								<div class="text-gray-800 text-sm md:text-base">{update.description}</div>
+
+								<div class="font-semibold text-gray-600 text-sm md:text-base">PIC:</div>
+								<div class="text-gray-800 text-sm md:text-base">{update.pic}</div>
+
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Status:</div>
+								<div class="text-gray-800 text-sm md:text-base">{update.status}</div>
+
+								<div class="font-semibold text-gray-600 text-sm md:text-base">Lampiran:</div>
+								<div class="text-gray-800 text-sm md:text-base">
+									<!-- Conditional: Tampilkan link file atau pesan tidak ada -->
+									{#if update.attachment}
+										<button
+											class="text-blue-600 text-xs md:text-sm font-semibold mt-1 px-2 py-0.5 bg-blue-50 rounded hover:bg-blue-100"
+											on:click={() => {
+												let url = update.attachment;
+												if (url && !url.startsWith('http')) {
+													url = `https://directus.eltamaprimaindo.com/assets/${url}`;
+												}
+												updateImageUrlAdmin = url;
+												showUpdateImageModalAdmin = true;
+											}}
+										>
+											Lihat File
+										</button>
+									{:else}
+										<span class="text-gray-500 text-xs md:text-sm">Tidak ada lampiran</span>
+									{/if}
+								</div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<div class="text-center text-gray-500 text-sm md:text-base py-4 md:py-8">
+					Tidak ada riwayat update untuk tiket ini.
+				</div>
+			{/if}
+			<div class="flex justify-end mt-4 md:mt-8">
+				<button
+					class="px-4 md:px-6 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold text-sm md:text-base"
+					on:click={() => showUpdateDetailModalAdmin = false}
+				>
+					Tutup
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	@keyframes fade-in {
