@@ -93,12 +93,14 @@ export const roleDefinitions = [
   { email: 'produksi@eltama.com', role: 'admin', department: 'Produksi' },
   { email: 'project@eltama.com', role: 'admin', department: 'Project' },
   { email: 'marketing@eltama.com', role: 'admin', department: 'Marketing' },
+  { email: 'digitalmarketing@eltama.com', role: 'admin', department: 'Digital Marketing' },
   { email: 'maintenance@eltama.com', role: 'admin', department: 'Maintenance' },
   { email: 'direktur@eltama.com', role: 'admin', department: 'Direktur' },
 
   { email: 'tennov@eltama.com', role: 'admin', department: 'IT', },
   { email: 'hrdex@eltama.com', role: 'admin', department: 'HRD', },
   { email: 'hafizh@eltama.com', role: 'admin', department: 'IT' },
+  { email: ' ulinnaeltama@eltama.com', role: 'user', department: 'HRD', },
   { email: 'mickael@eltama.com', role: 'user', department: 'IT' },
   { email: 'brain@eltama.com', role: 'user', department: 'IT' },
   { email: 'samuel@eltama.com', role: 'user', department: 'IT' },
@@ -108,9 +110,13 @@ export const roleDefinitions = [
   { email: 'ryo@eltama.com', role: 'user', department: 'Project' },
   { email: 'julianto@eltama.com', role: 'user', department: 'Project' },
   { email: 'panji@eltama.com', role: 'user', department: 'Project' },
+  
   { email: 'irsyad@eltama.com', role: 'user', department: 'Project' },
   { email: 'taufik@eltama.com', role: 'user', department: 'Project' },
   { email: 'annga@eltama.com', role: 'user', department: 'Project' },
+  { email: 'aulia@eltama.com', role: 'user', department: 'Project' },
+  { email: 'rayhan@eltama.com', role: 'user', department: 'Project' },
+  { email: 'kevin@eltama.com', role: 'user', department: 'Project' },
   { email: 'ciketing@eltama.com', role: 'user', department: 'Project' },
   { email: 'ineke@eltama.com', role: 'user', department: 'Project' },
   { email: 'surya@eltama.com', role: 'user', department: 'Marketing' },
@@ -134,7 +140,7 @@ export const roleDefinitions = [
   { email: 'achmad@eltama.com', role: 'user', department: 'Maintenance' },
   { email: 'bayu@eltama.com', role: 'user', department: 'Maintenance' },
   { email: 'vionda@eltama.com', role: 'user', department: 'IT' },
-  { email: 'adit@eltama.com', role: 'user', department: 'IT' },
+  { email: 'adit@eltama.com', role: 'user', department: 'Digital Marketing' },
 
   {
     email: "haryono@eltama.com",
@@ -174,6 +180,18 @@ if (browser && auth) {
       userDepartment.set(department);
       userName.set(name);
       userEmail.set(email); // Set userEmail di sini
+      
+      // Simpan data user ke localStorage untuk kompatibilitas dengan komponen lain
+      if (typeof localStorage !== 'undefined') {
+        const userData = {
+          email: email,
+          role: role,
+          department: department,
+          name: name
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+        console.log('Saved userData to localStorage:', userData);
+      }
     } else {
       console.log("User is signed out");
       isAuthenticated.set(false);
@@ -181,6 +199,11 @@ if (browser && auth) {
       userDepartment.set(null);
       userName.set(null);
       userEmail.set(null); // Reset userEmail saat logout
+      
+      // Hapus userData dari localStorage saat logout
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('userData');
+      }
     }
   });
 } else {
@@ -414,6 +437,7 @@ export const logout = async () => {
       localStorage.removeItem('user_role');
       localStorage.removeItem('user_department');
       localStorage.removeItem('user_name');
+      localStorage.removeItem('userData'); // Hapus userData object juga
     }
 
     await signOut(auth);

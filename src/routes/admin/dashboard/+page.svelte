@@ -33,7 +33,7 @@
 	let showQuestionModal = false;
 	let showVehicleModal = false;
 	let ticketUpdates = [];
-	
+
 	// Filter state for General Manager
 	let selectedDepartmentFilter = 'all';
 	let availableDepartments = [];
@@ -85,7 +85,11 @@
 					department: t.target_department,
 					departure_time: t.departure_time,
 					estimated_return_time: t.estimated_return_time,
-					vehicle_type: t.vehicle_type
+					vehicle_type: t.vehicle_type,
+					initial_fuel: t.initial_fuel,
+					initial_kilometer: t.initial_kilometer,
+					submission_amount: t.submission_amount,
+					destination: t.destination
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);
@@ -150,14 +154,14 @@
 					Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz`
 				}
 			});
-			
+
 			console.log('Raw survey data:', res.data.data); // Debug log
-			
+
 			surveys = res.data.data
 				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((survey) => {
 					let parsedQuestions = [];
-					
+
 					// Parse questions if it's a string JSON
 					if (survey.questions) {
 						if (typeof survey.questions === 'string') {
@@ -175,9 +179,9 @@
 							parsedQuestions = [survey.questions];
 						}
 					}
-					
+
 					console.log('Processed questions for survey', survey.id, ':', parsedQuestions);
-					
+
 					return {
 						id: `S${String(survey.id).padStart(3, '0')}`,
 						rawId: survey.id,
@@ -190,7 +194,7 @@
 						questions: parsedQuestions
 					};
 				});
-				
+
 			console.log('Final processed surveys:', surveys);
 		} catch (e) {
 			console.error('Gagal mengambil survey:', e);
@@ -231,39 +235,36 @@
 		showVehicleModal = false;
 	}
 
-	    // Modal state for survey detail view
-    let showDetailModalSurvey = false;
-    let selectedSurvey = null;
+	// Modal state for survey detail view
+	let showDetailModalSurvey = false;
+	let selectedSurvey = null;
 
-    // Open survey detail modal
-    function handleOpenDetailSurvey(e) {
-        selectedSurvey = e.detail.survey;
-        showDetailModalSurvey = true;
-    }
-    // Close survey detail modal
-    function closeDetailModalSurvey() {
-        showDetailModalSurvey = false;
-        selectedSurvey = null;
-    }
-    
-    // Handle survey deletion
-    async function handleDeleteSurvey(e) {
-        const survey = e.detail.survey;
-        try {
-            await axios.delete(
-                `https://directus.eltamaprimaindo.com/items/Survey/${survey.rawId}`,
-                {
-                    headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` }
-                }
-            );
-            // Remove the deleted survey from the surveys array
-            surveys = surveys.filter(s => s.rawId !== survey.rawId);
-            alert('Survey berhasil dihapus');
-        } catch (error) {
-            console.error('Error deleting survey:', error);
-            alert('Gagal menghapus survey. Silakan coba lagi.');
-        }
-    }
+	// Open survey detail modal
+	function handleOpenDetailSurvey(e) {
+		selectedSurvey = e.detail.survey;
+		showDetailModalSurvey = true;
+	}
+	// Close survey detail modal
+	function closeDetailModalSurvey() {
+		showDetailModalSurvey = false;
+		selectedSurvey = null;
+	}
+
+	// Handle survey deletion
+	async function handleDeleteSurvey(e) {
+		const survey = e.detail.survey;
+		try {
+			await axios.delete(`https://directus.eltamaprimaindo.com/items/Survey/${survey.rawId}`, {
+				headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` }
+			});
+			// Remove the deleted survey from the surveys array
+			surveys = surveys.filter((s) => s.rawId !== survey.rawId);
+			alert('Survey berhasil dihapus');
+		} catch (error) {
+			console.error('Error deleting survey:', error);
+			alert('Gagal menghapus survey. Silakan coba lagi.');
+		}
+	}
 	// Modal image state and handlers for ticket attachments
 	let showImageModalTicket = false;
 	let imageUrlTicket = '';
@@ -369,39 +370,50 @@
 	// Handle ticket update event from child component
 	function handleTicketUpdated(e) {
 		const updated = e.detail.updatedTicket;
-		tickets = tickets.map((t) => (t.rawId === updated.rawId ? { ...t, ...updated } : t));
+		console.log('Handling ticket update:', updated);
 		
-		// Check if this is a vehicle borrowing ticket that was just approved
-		if (updated.category === 'Peminjaman Kendaraan' && 
-			updated.status === 'On Progress' && 
-			updated.vehicle_type) {
+		// Update tickets array dengan safety check untuk rawId
+		tickets = tickets.map((t) => {
+			// Coba match berdasarkan rawId terlebih dahulu, fallback ke id
+			const ticketId = t.rawId || t.id;
+			const updatedId = updated.rawId || updated.id;
 			
+			return ticketId === updatedId ? { ...t, ...updated } : t;
+		});
+
+		// Check if this is a vehicle borrowing ticket that was just approved
+		if (
+			updated.category === 'Peminjaman Kendaraan' &&
+			updated.status === 'On Progress' &&
+			updated.vehicle_type
+		) {
 			// Update vehicle status to "Dipinjam" in Directus
 			updateVehicleStatus(updated.vehicle_type, 'Dipinjam');
 		}
-		
+
 		// Check if this is a vehicle borrowing ticket that was just completed
-		if (updated.category === 'Peminjaman Kendaraan' && 
-			updated.status === 'Done' && 
-			updated.vehicle_type) {
-			
+		if (
+			updated.category === 'Peminjaman Kendaraan' &&
+			updated.status === 'Done' &&
+			updated.vehicle_type
+		) {
 			// Update vehicle status back to "Tersedia" in Directus
 			updateVehicleStatus(updated.vehicle_type, 'Tersedia');
 		}
 	}
-	
+
 	// Function to update vehicle status in Directus
 	async function updateVehicleStatus(vehicleInfo, newStatus) {
 		try {
 			if (!vehicleInfo || typeof vehicleInfo !== 'string') return;
-			
+
 			// Extract vehicle name from the format "Jenis Nama PlatNomor - Status"
 			const vehicleMatch = vehicleInfo.match(/^([^-]+)/);
 			if (!vehicleMatch) return;
-			
+
 			const vehicleIdentifier = vehicleMatch[1].trim();
 			const vehicleName = vehicleIdentifier.split(' ')[1] || '';
-			
+
 			// Find the vehicle in Directus by name
 			const response = await axios.get('https://directus.eltamaprimaindo.com/items/Kendaraan', {
 				headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` },
@@ -411,17 +423,17 @@
 					}
 				}
 			});
-			
+
 			if (response.data && response.data.data && response.data.data.length > 0) {
 				const vehicle = response.data.data[0];
-				
+
 				// Update the vehicle status
 				await axios.patch(
 					`https://directus.eltamaprimaindo.com/items/Kendaraan/${vehicle.id}`,
 					{ status: newStatus },
 					{ headers: { Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz` } }
 				);
-				
+
 				console.log(`Vehicle status updated: ${vehicleInfo} -> ${newStatus}`);
 			}
 		} catch (error) {
@@ -539,25 +551,30 @@
 
 	// Reactive statement: Filter tickets by admin's department
 	// General Manager can see all tickets from all departments
-	$: filteredTickets = isGeneralManager($userEmail) 
-		? (selectedDepartmentFilter === 'all' 
+	$: filteredTickets = isGeneralManager($userEmail)
+		? selectedDepartmentFilter === 'all'
 			? tickets // Show all tickets if 'all' is selected
-			: tickets.filter(t => t.department?.trim().toLowerCase() === selectedDepartmentFilter.toLowerCase())
-		) // General Manager sees all tickets with optional department filter
-		: tickets.filter(
-			(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
-		);
+			: tickets.filter(
+					(t) => t.department?.trim().toLowerCase() === selectedDepartmentFilter.toLowerCase()
+				)
+		: // General Manager sees all tickets with optional department filter
+			tickets.filter(
+				(t) => t.department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
+			);
 
 	// Reactive statement: Filter surveys by admin's department
 	// General Manager can see all surveys from all departments
-	$: filteredSurveys = isGeneralManager($userEmail) 
-		? (selectedDepartmentFilter === 'all' 
+	$: filteredSurveys = isGeneralManager($userEmail)
+		? selectedDepartmentFilter === 'all'
 			? surveys // Show all surveys if 'all' is selected
-			: surveys.filter(s => s.target_department?.trim().toLowerCase() === selectedDepartmentFilter.toLowerCase())
-		) // General Manager sees all surveys with optional department filter
-		: surveys.filter(
-			(s) => s.target_department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
-		);
+			: surveys.filter(
+					(s) =>
+						s.target_department?.trim().toLowerCase() === selectedDepartmentFilter.toLowerCase()
+				)
+		: // General Manager sees all surveys with optional department filter
+			surveys.filter(
+				(s) => s.target_department?.trim().toLowerCase() === adminDepartment?.trim().toLowerCase()
+			);
 
 	// Reactive statement: Log admin department changes for debugging
 	$: if (adminDepartment !== undefined) {
@@ -573,12 +590,14 @@
 
 	// Reactive: Extract available departments from tickets and surveys for filter dropdown
 	$: if ((tickets.length > 0 || surveys.length > 0) && isGeneralManager($userEmail)) {
-		const ticketDepartments = tickets.map(t => t.department).filter(dept => dept && dept.trim() !== '');
-		const surveyDepartments = surveys.map(s => s.target_department).filter(dept => dept && dept.trim() !== '');
+		const ticketDepartments = tickets
+			.map((t) => t.department)
+			.filter((dept) => dept && dept.trim() !== '');
+		const surveyDepartments = surveys
+			.map((s) => s.target_department)
+			.filter((dept) => dept && dept.trim() !== '');
 		const allDepartments = [...ticketDepartments, ...surveyDepartments];
-		const departments = [...new Set(allDepartments
-			.map(dept => dept.trim())
-		)].sort();
+		const departments = [...new Set(allDepartments.map((dept) => dept.trim()))].sort();
 		availableDepartments = departments;
 		console.log('Available departments (from tickets and surveys):', availableDepartments);
 	}
@@ -608,30 +627,33 @@
 {#if !authReady || !roleReady}
 	<div class="flex items-center justify-center min-h-screen text-lg text-blue-700">Loading...</div>
 {:else}
-	<div
-		class="p-0 md:p-6 bg-gradient-to-br from-blue-100 via-blue-50 to-white min-h-screen animate-fade-in"
-	>
+	<div class="p-0 md:p-6 min-h-screen animate-fade-in">
 		<h1 class="text-2xl font-bold text-blue-800 drop-shadow px-2 md:px-0">Dashboard Admin</h1>
-		
+
 		<!-- General Manager Info Banner -->
 		{#if isGeneralManager($userEmail)}
 			<div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 mx-2 md:mx-0 rounded-r-lg">
 				<div class="flex">
 					<div class="flex-shrink-0">
 						<svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-							<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+							<path
+								fill-rule="evenodd"
+								d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+								clip-rule="evenodd"
+							></path>
 						</svg>
 					</div>
 					<div class="ml-3">
 						<p class="text-sm text-blue-700">
-							<strong>General Manager Access:</strong> Anda dapat melihat semua tiket, feedback, dan survey dari seluruh departemen. 
-							Gunakan filter departemen untuk memfokuskan tampilan pada departemen tertentu.
+							<strong>General Manager Access:</strong> Anda dapat melihat semua tiket, feedback, dan
+							survey dari seluruh departemen. Gunakan filter departemen untuk memfokuskan tampilan pada
+							departemen tertentu.
 						</p>
 					</div>
 				</div>
 			</div>
 		{/if}
-		
+
 		<div class="flex justify-between items-center mb-6"></div>
 		<!-- Stats -->
 		<div class="w-full px-0 md:px-0">
@@ -650,15 +672,19 @@
 			<button
 				on:click={openQuestionModal}
 				class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl text-center shadow-lg font-semibold transition transform hover:scale-105 animate-fade-in-up"
-				>Kelola Pertanyaan Survey</button
 			>
+				<span class="inline md:hidden">Kelola Survey</span>
+				<span class="hidden md:inline">Kelola Pertanyaan Survey</span>
+			</button>
 			<!-- Tombol Kelola Kendaraan (hanya untuk admin HRD) -->
 			{#if checkIsHrdAdmin()}
 				<button
 					on:click={openVehicleModal}
 					class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl text-center shadow-lg font-semibold transition transform hover:scale-105 animate-fade-in-up"
-					>Kelola Kendaraan</button
 				>
+					<span class="inline md:hidden">Kelola Armada</span>
+					<span class="hidden md:inline">Kelola Kendaraan</span>
+				</button>
 			{/if}
 		</div>
 
@@ -686,19 +712,19 @@
 				/>
 			{/if}
 
-		<!-- Tickets Table -->
+			<!-- Tickets Table -->
 			<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
 				<h2 class="text-xl font-semibold ml-2 text-blue-700 font-mono">
 					{isGeneralManager($userEmail) ? 'List Tiket (Semua Departemen)' : 'List Tiket'}
 				</h2>
-				
+
 				<!-- Department Filter for General Manager -->
 				{#if isGeneralManager($userEmail) && availableDepartments.length > 0}
 					<div class="flex items-center gap-2">
 						<label for="department-filter" class="text-sm font-medium text-gray-700">
 							Filter Departemen:
 						</label>
-						<select 
+						<select
 							id="department-filter"
 							bind:value={selectedDepartmentFilter}
 							class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px]"
@@ -708,7 +734,7 @@
 								<option value={dept}>{dept}</option>
 							{/each}
 						</select>
-						
+
 						<!-- Filter Summary -->
 						<div class="text-sm text-gray-600 ml-2">
 							({filteredTickets.length} tiket)
@@ -716,11 +742,12 @@
 					</div>
 				{/if}
 			</div>
-			
+
 			<TicketList
 				tickets={filteredTickets}
 				isAdmin={true}
 				showDepartments={isGeneralManager($userEmail)}
+				{ticketUpdates}
 				on:deleted={fetchTickets}
 				on:openDetail={handleOpenDetailTicket}
 				on:ticketUpdated={handleTicketUpdated}
@@ -745,7 +772,7 @@
 				<h2 class="text-xl font-semibold ml-2 text-blue-700 font-mono">
 					{isGeneralManager($userEmail) ? 'List Survey (Semua Departemen)' : 'List Survey'}
 				</h2>
-				
+
 				<!-- Department Filter Summary for General Manager -->
 				{#if isGeneralManager($userEmail)}
 					<div class="text-sm text-gray-600">
@@ -753,7 +780,7 @@
 					</div>
 				{/if}
 			</div>
-			
+
 			<SurveyList
 				surveys={filteredSurveys}
 				showDepartments={isGeneralManager($userEmail)}
@@ -970,161 +997,241 @@
 
 <!-- Modal for admin's ticket update detail -->
 {#if showDetailModalAdminTicket && selectedAdminTicket}
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-        <div
-            class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-2xl p-4 md:p-6 relative animate-fade-in-up max-h-[95vh] overflow-y-auto"
-        >
-            <button
-                class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
-                on:click={closeDetailModalAdminTicket}
-                aria-label="Tutup"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+		<div
+			class="bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] md:max-w-2xl p-4 md:p-6 relative animate-fade-in-up max-h-[95vh] overflow-y-auto"
+		>
+			<button
+				class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+				on:click={closeDetailModalAdminTicket}
+				aria-label="Tutup"
+			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M6 18L18 6M6 6l12 12"
+					></path>
+				</svg>
+			</button>
 
-            <div class="mb-6 text-center">
-                <h2 class="text-xl md:text-2xl font-bold text-blue-700 mb-2">
-                    Detail Tiket
-                </h2>
-                <div class="inline-flex items-center bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                    </svg>
-                    {selectedAdminTicket.id}
-                </div>
-            </div>
+			<div class="mb-6 text-center">
+				<h2 class="text-xl md:text-2xl font-bold text-blue-700 mb-2">Detail Tiket</h2>
+				<div
+					class="inline-flex items-center bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold"
+				>
+					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+						></path>
+					</svg>
+					{selectedAdminTicket.id}
+				</div>
+			</div>
 
-            <!-- Grid Layout for better organization -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <!-- Informasi Dasar -->
-                <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
-                    <h3 class="text-lg font-semibold text-blue-800 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                        Informasi Dasar
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-blue-700 mb-1">Nama</span>
-                            <span class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm">
-                                {selectedAdminTicket.name || '-'}
-                            </span>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-blue-700 mb-1">Kategori</span>
-                            <span class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm">
-                                {selectedAdminTicket.category || '-'}
-                            </span>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-blue-700 mb-1">Departemen Tujuan</span>
-                            <span class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm">
-                                {selectedAdminTicket.department || '-'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+			<!-- Grid Layout for better organization -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+				<!-- Informasi Dasar -->
+				<div
+					class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200"
+				>
+					<h3 class="text-lg font-semibold text-blue-800 mb-3 flex items-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+							></path>
+						</svg>
+						Informasi Dasar
+					</h3>
+					<div class="space-y-3">
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-blue-700 mb-1">Nama</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm"
+							>
+								{selectedAdminTicket.name || '-'}
+							</span>
+						</div>
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-blue-700 mb-1">Kategori</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm"
+							>
+								{selectedAdminTicket.category || '-'}
+							</span>
+						</div>
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-blue-700 mb-1">Departemen Tujuan</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-blue-200 text-sm"
+							>
+								{selectedAdminTicket.department || '-'}
+							</span>
+						</div>
+					</div>
+				</div>
 
-                <!-- Status & Tanggal -->
-                <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200">
-                    <h3 class="text-lg font-semibold text-green-800 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Status & Waktu
-                    </h3>
-                    <div class="space-y-3">
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-green-700 mb-1">Status</span>
-                            <div class="bg-white px-3 py-2 rounded-lg border border-green-200">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {selectedAdminTicket.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                                     selectedAdminTicket.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
-                                     'bg-gray-100 text-gray-800'}">
-                                    {selectedAdminTicket.status || 'Pending'}
-                                </span>
-                            </div>
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-sm font-medium text-green-700 mb-1">Tanggal Dibuat</span>
-                            <span class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-green-200 text-sm">
-                                {formatDate(selectedAdminTicket.date) || '-'}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+				<!-- Status & Tanggal -->
+				<div
+					class="bg-gradient-to-r from-green-50 to-green-100 rounded-xl p-4 border border-green-200"
+				>
+					<h3 class="text-lg font-semibold text-green-800 mb-3 flex items-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						Status & Waktu
+					</h3>
+					<div class="space-y-3">
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-green-700 mb-1">Status</span>
+							<div class="bg-white px-3 py-2 rounded-lg border border-green-200">
+								<span
+									class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {selectedAdminTicket.status === 'completed'
+										? 'bg-green-100 text-green-800'
+										: selectedAdminTicket.status === 'in_progress'
+											? 'bg-yellow-100 text-yellow-800'
+											: 'bg-gray-100 text-gray-800'}"
+								>
+									{selectedAdminTicket.status || 'Pending'}
+								</span>
+							</div>
+						</div>
+						<div class="flex flex-col">
+							<span class="text-sm font-medium text-green-700 mb-1">Tanggal Dibuat</span>
+							<span
+								class="text-gray-800 bg-white px-3 py-2 rounded-lg border border-green-200 text-sm"
+							>
+								{formatDate(selectedAdminTicket.date) || '-'}
+							</span>
+						</div>
+					</div>
+				</div>
+			</div>
 
-            <!-- Deskripsi Masalah -->
-            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 mb-4">
-                <h3 class="text-lg font-semibold text-purple-800 mb-3 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Deskripsi Masalah
-                </h3>
-                <div class="bg-white rounded-lg border border-purple-200 p-4 max-h-[200px] overflow-y-auto custom-scrollbar">
-                    <p class="text-gray-800 text-sm leading-relaxed whitespace-pre-line">
-                        {selectedAdminTicket.desc || selectedAdminTicket.ticket || 'Tidak ada deskripsi masalah yang tersedia.'}
-                    </p>
-                </div>
-            </div>
+			<!-- Deskripsi Masalah -->
+			<div
+				class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 mb-4"
+			>
+				<h3 class="text-lg font-semibold text-purple-800 mb-3 flex items-center">
+					<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+						></path>
+					</svg>
+					Deskripsi Masalah
+				</h3>
+				<div
+					class="bg-white rounded-lg border border-purple-200 p-4 max-h-[200px] overflow-y-auto custom-scrollbar"
+				>
+					<p class="text-gray-800 text-sm leading-relaxed whitespace-pre-line">
+						{selectedAdminTicket.desc ||
+							selectedAdminTicket.ticket ||
+							'Tidak ada deskripsi masalah yang tersedia.'}
+					</p>
+				</div>
+			</div>
 
-            <!-- Lampiran -->
-            {#if selectedAdminTicket.photo_ticket}
-                <div class="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 mb-6">
-                    <h3 class="text-lg font-semibold text-orange-800 mb-3 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a2 2 0 000-2.828z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l6m0 0l6m-6 0v6"></path>
-                        </svg>
-                        Lampiran
-                    </h3>
-                    <div class="bg-white rounded-lg border border-orange-200 p-4">
-                        <div class="group relative overflow-hidden rounded-lg border-2 border-dashed border-orange-300 hover:border-orange-400 transition-colors">
-                            <img
-                                src="https://directus.eltamaprimaindo.com/assets/{selectedAdminTicket.photo_ticket}"
-                                alt="Lampiran tiket"
-                                class="w-full h-auto max-h-[300px] object-contain cursor-pointer transition-transform group-hover:scale-105"
-                                on:click={() => {
-                                    window.open(
-                                        `https://directus.eltamaprimaindo.com/assets/${selectedAdminTicket.photo_ticket}`,
-                                        '_blank'
-                                    );
-                                }}
-                            />
-                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
-                                <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                    <div class="bg-white bg-opacity-90 rounded-full p-2">
-                                        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <p class="text-xs text-orange-600 mt-2 text-center">Klik gambar untuk melihat ukuran penuh</p>
-                    </div>
-                </div>
-            {/if}
+			<!-- Lampiran -->
+			{#if selectedAdminTicket.photo_ticket}
+				<div
+					class="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 mb-6"
+				>
+					<h3 class="text-lg font-semibold text-orange-800 mb-3 flex items-center">
+						<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a2 2 0 000-2.828z"
+							></path>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M9 12l6m0 0l6m-6 0v6"
+							></path>
+						</svg>
+						Lampiran
+					</h3>
+					<div class="bg-white rounded-lg border border-orange-200 p-4">
+						<div
+							class="group relative overflow-hidden rounded-lg border-2 border-dashed border-orange-300 hover:border-orange-400 transition-colors"
+						>
+							<img
+								src="https://directus.eltamaprimaindo.com/assets/{selectedAdminTicket.photo_ticket}"
+								alt="Lampiran tiket"
+								class="w-full h-auto max-h-[300px] object-contain cursor-pointer transition-transform group-hover:scale-105"
+								on:click={() => {
+									window.open(
+										`https://directus.eltamaprimaindo.com/assets/${selectedAdminTicket.photo_ticket}`,
+										'_blank'
+									);
+								}}
+							/>
+							<div
+								class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center"
+							>
+								<div class="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+									<div class="bg-white bg-opacity-90 rounded-full p-2">
+										<svg
+											class="w-6 h-6 text-gray-700"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+											></path>
+										</svg>
+									</div>
+								</div>
+							</div>
+						</div>
+						<p class="text-xs text-orange-600 mt-2 text-center">
+							Klik gambar untuk melihat ukuran penuh
+						</p>
+					</div>
+				</div>
+			{/if}
 
-            <!-- Action Buttons -->
-            <div class="flex justify-center space-x-3">
-                <button
-                    class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold text-sm flex items-center shadow-lg hover:shadow-xl"
-                    on:click={closeDetailModalAdminTicket}
-                >
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"></path>
-                    </svg>
-                    Tutup
-                </button>
-            </div>
-        </div>
-    </div>
+			<!-- Action Buttons -->
+			<div class="flex justify-center space-x-3">
+				<button
+					class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-semibold text-sm flex items-center shadow-lg hover:shadow-xl"
+					on:click={closeDetailModalAdminTicket}
+				>
+					<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M11 17l-5-5m0 0l5-5m-5 5h12"
+						></path>
+					</svg>
+					Tutup
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
 
 <!-- Modal for admin's update image -->
@@ -1149,115 +1256,119 @@
 
 <!-- Modal untuk question manager -->
 {#if showQuestionModal}
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
-    >
-        <div class="bg-white rounded-lg shadow-xl p-0 max-w-4xl w-full relative animate-fade-in-up">
-            <button
-                class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
-                on:click={closeQuestionModal}>&times;</button
-            >
-            <QuestionManager
-                onClose={closeQuestionModal}
-            />
-        </div>
-    </div>
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+	>
+		<div class="bg-white rounded-lg shadow-xl p-0 max-w-4xl w-full relative animate-fade-in-up">
+			<button
+				class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+				on:click={closeQuestionModal}>&times;</button
+			>
+			<QuestionManager onClose={closeQuestionModal} />
+		</div>
+	</div>
 {/if}
 
 <!-- Modal untuk vehicle manager (hanya untuk admin HRD) -->
 {#if showVehicleModal}
-    <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
-    >
-        <div class="bg-white rounded-lg shadow-xl p-0 max-w-4xl w-full relative animate-fade-in-up">
-            <button
-                class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
-                on:click={closeVehicleModal}>&times;</button
-            >
-            <VehicleManager
-                onClose={closeVehicleModal}
-            />
-        </div>
-    </div>
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+	>
+		<div class="bg-white rounded-lg shadow-xl p-0 max-w-4xl w-full relative animate-fade-in-up">
+			<button
+				class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+				on:click={closeVehicleModal}>&times;</button
+			>
+			<VehicleManager onClose={closeVehicleModal} />
+		</div>
+	</div>
 {/if}
 
 <!-- Modal for survey detail display -->
 {#if showDetailModalSurvey && selectedSurvey}
-    <div class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40">
-        <div
-            class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full relative flex flex-col animate-fade-in-up"
-            style="max-height: 90vh; overflow-y:auto"
-        >
-            <button
-                class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
-                on:click={closeDetailModalSurvey}>&times;</button
-            >
-            <h2 class="text-xl font-bold mb-4 text-blue-700 text-center">
-                Detail Survey {selectedSurvey.id}
-            </h2>
+	<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black bg-opacity-40">
+		<div
+			class="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full relative flex flex-col animate-fade-in-up"
+			style="max-height: 90vh; overflow-y:auto"
+		>
+			<button
+				class="absolute top-2 right-2 w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-red-100 rounded-full text-gray-400 hover:text-red-500 transition-colors"
+				on:click={closeDetailModalSurvey}>&times;</button
+			>
+			<h2 class="text-xl font-bold mb-4 text-blue-700 text-center">
+				Detail Survey {selectedSurvey.id}
+			</h2>
 
-            <!-- Questions and Answers -->
-            {#if selectedSurvey.questions && Array.isArray(selectedSurvey.questions) && selectedSurvey.questions.length > 0}
-                <div class="mb-6">
-                    <h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
-                    <div class="space-y-4">
-                        {#each selectedSurvey.questions as qa, index}
-                            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                <h4 class="font-medium text-gray-700 mb-2">{index + 1}. {qa.question || 'Pertanyaan tidak tersedia'}</h4>
-                                <p class="text-gray-600 whitespace-pre-line">{qa.answer || 'Tidak ada jawaban'}</p>
-                            </div>
-                        {/each}
-                    </div>
-                </div>
-            {:else if selectedSurvey.questions && typeof selectedSurvey.questions === 'string'}
-                <!-- Jika questions masih berupa string JSON -->
-                <div class="mb-6">
-                    <h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
-                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                        <p class="text-orange-700 text-sm mb-2">⚠️ Data questions masih dalam format string JSON:</p>
-                        <pre class="text-xs bg-white p-2 rounded overflow-auto">{selectedSurvey.questions}</pre>
-                    </div>
-                </div>
-            {:else if selectedSurvey.questions && typeof selectedSurvey.questions === 'object'}
-                <!-- Jika questions berupa object tunggal -->
-                <div class="mb-6">
-                    <h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
-                    <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                        <h4 class="font-medium text-gray-700 mb-2">1. {selectedSurvey.questions.question || 'Pertanyaan tidak tersedia'}</h4>
-                        <p class="text-gray-600 whitespace-pre-line">{selectedSurvey.questions.answer || 'Tidak ada jawaban'}</p>
-                    </div>
-                </div>
-            {:else}
-                <!-- Tidak ada questions -->
-                <div class="mb-6">
-                    <h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
-                    <div class="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
-                        Tidak ada pertanyaan dan jawaban untuk survey ini
-                    </div>
-                </div>
-            {/if}
+			<!-- Questions and Answers -->
+			{#if selectedSurvey.questions && Array.isArray(selectedSurvey.questions) && selectedSurvey.questions.length > 0}
+				<div class="mb-6">
+					<h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
+					<div class="space-y-4">
+						{#each selectedSurvey.questions as qa, index}
+							<div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+								<h4 class="font-medium text-gray-700 mb-2">
+									{index + 1}. {qa.question || 'Pertanyaan tidak tersedia'}
+								</h4>
+								<p class="text-gray-600 whitespace-pre-line">{qa.answer || 'Tidak ada jawaban'}</p>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{:else if selectedSurvey.questions && typeof selectedSurvey.questions === 'string'}
+				<!-- Jika questions masih berupa string JSON -->
+				<div class="mb-6">
+					<h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
+					<div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+						<p class="text-orange-700 text-sm mb-2">
+							⚠️ Data questions masih dalam format string JSON:
+						</p>
+						<pre class="text-xs bg-white p-2 rounded overflow-auto">{selectedSurvey.questions}</pre>
+					</div>
+				</div>
+			{:else if selectedSurvey.questions && typeof selectedSurvey.questions === 'object'}
+				<!-- Jika questions berupa object tunggal -->
+				<div class="mb-6">
+					<h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
+					<div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
+						<h4 class="font-medium text-gray-700 mb-2">
+							1. {selectedSurvey.questions.question || 'Pertanyaan tidak tersedia'}
+						</h4>
+						<p class="text-gray-600 whitespace-pre-line">
+							{selectedSurvey.questions.answer || 'Tidak ada jawaban'}
+						</p>
+					</div>
+				</div>
+			{:else}
+				<!-- Tidak ada questions -->
+				<div class="mb-6">
+					<h3 class="font-semibold text-gray-700 mb-4">Pertanyaan & Jawaban</h3>
+					<div class="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
+						Tidak ada pertanyaan dan jawaban untuk survey ini
+					</div>
+				</div>
+			{/if}
 
-            <!-- Additional Comments -->
-            {#if selectedSurvey.additional}
-                <div class="mb-6">
-                    <h3 class="font-semibold text-gray-700 mb-3">Pendapat Tambahan</h3>
-                    <div class="bg-purple-50 rounded-lg p-4">
-                        <p class="text-gray-700 whitespace-pre-line">{selectedSurvey.additional}</p>
-                    </div>
-                </div>
-            {/if}
+			<!-- Additional Comments -->
+			{#if selectedSurvey.additional}
+				<div class="mb-6">
+					<h3 class="font-semibold text-gray-700 mb-3">Pendapat Tambahan</h3>
+					<div class="bg-purple-50 rounded-lg p-4">
+						<p class="text-gray-700 whitespace-pre-line">{selectedSurvey.additional}</p>
+					</div>
+				</div>
+			{/if}
 
-            <!-- Close Button -->
-            <div class="flex justify-center">
-                <button
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
-                    on:click={closeDetailModalSurvey}
-                >
-                    Tutup
-                </button>
-            </div>
-        </div>
-    </div>
+			<!-- Close Button -->
+			<div class="flex justify-center">
+				<button
+					class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+					on:click={closeDetailModalSurvey}
+				>
+					Tutup
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
 
 <!-- Modal for admin's ticket update detail -->
@@ -1268,7 +1379,7 @@
 		>
 			<button
 				class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-red-500 transition"
-				on:click={() => showUpdateDetailModalAdmin = false}
+				on:click={() => (showUpdateDetailModalAdmin = false)}
 				aria-label="Tutup"
 			>
 				&times;
@@ -1331,7 +1442,7 @@
 			<div class="flex justify-end mt-4 md:mt-8">
 				<button
 					class="px-4 md:px-6 py-1.5 md:py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-semibold text-sm md:text-base"
-					on:click={() => showUpdateDetailModalAdmin = false}
+					on:click={() => (showUpdateDetailModalAdmin = false)}
 				>
 					Tutup
 				</button>

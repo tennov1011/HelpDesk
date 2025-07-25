@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { userEmail } from '$lib/services/firebaseConfig';
 	import { fetchEmployees } from '$lib/services/employee.js';
-	import Sidebar from '$lib/component/Sidebar.svelte';
 	import Header from '$lib/component/Header.svelte';
 	import Footer from '$lib/component/Footer.svelte';
 

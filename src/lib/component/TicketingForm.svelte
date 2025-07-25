@@ -31,6 +31,12 @@
 	let departure_time = '';
 	let estimated_return_time = '';
 	
+	// Fuel Submission fields
+	let initial_fuel = '';
+	let initial_kilometer = '';
+	let submission_amount = '';
+	let destination = '';
+	
 	export let employee = null;
 
 	// Vehicles data from Directus
@@ -42,6 +48,7 @@
 		'HRD',
 		'Finance',
 		'Marketing',
+		'Digital Marketing',
 		'Procurement',
 		'Produksi',
 		'Inventory',
@@ -56,6 +63,13 @@
 		'Laptop',
 		'Printer',
 		'Scanner',
+		'Kamera',
+		'Penghitung',
+		'Televisi',
+		'Telepon',
+		'Fax',
+		'Smart TV',
+		'Speaker',
 		'Monitor',
 		'UPS',
 		'Server',
@@ -238,6 +252,10 @@
 			location,
 			departure_time,
 			estimated_return_time,
+			initial_fuel,
+			initial_kilometer,
+			submission_amount,
+			destination,
 			app_type,
 			date_created: new Date().toISOString()
 		};
@@ -278,6 +296,42 @@
 			delete data.estimated_return_time;
 		}
 
+		// Handle fuel submission fields for "Pengajuan BBM" category
+		if (data.category === 'Pengajuan BBM') {
+			// Validate required fuel submission fields
+			if (!data.vehicle_type) {
+				showNotification('error', 'Jenis Kendaraan harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!data.initial_fuel) {
+				showNotification('error', 'Jumlah Awal Bensin harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!data.initial_kilometer) {
+				showNotification('error', 'Kilometer Awal harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!data.submission_amount) {
+				showNotification('error', 'Nominal Pengajuan harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!data.destination) {
+				showNotification('error', 'Tujuan harus diisi');
+				isLoading = false;
+				return;
+			}
+		} else {
+			// Remove fuel submission fields for other categories
+			delete data.initial_fuel;
+			delete data.initial_kilometer;
+			delete data.submission_amount;
+			delete data.destination;
+		}
+
 		if (data.category === 'Peminjaman Kendaraan' && !vehicle_type) {
 			showNotification('error', 'Jenis Kendaraan harus diisi');
 			isLoading = false;
@@ -306,6 +360,10 @@
 			vehicle_type = '';
 			departure_time = '';
 			estimated_return_time = '';
+			initial_fuel = '';
+			initial_kilometer = '';
+			submission_amount = '';
+			destination = '';
 			contactPhone = '';
 			photo_ticket = [];
 			setTimeout(() => {
@@ -343,14 +401,19 @@
 		document.addEventListener('mousedown', handleClickOutside);
 		
 		// Fetch vehicles when component mounts
-		if (category === 'Peminjaman Kendaraan' || category === '') {
+		if (category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM' || category === '') {
 			fetchVehicles();
 		}
 	});
 
 	// Watch category changes to fetch vehicles when needed
-	$: if (category === 'Peminjaman Kendaraan' && vehicles.length === 0) {
+	$: if ((category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM') && vehicles.length === 0) {
 		fetchVehicles();
+	}
+
+	// Watch category changes to set target_department for vehicle and fuel categories
+	$: if (category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM') {
+		target_department = 'HRD';
 	}
 
 	onDestroy(() => {
@@ -413,6 +476,7 @@
 					<option value="Asset">Asset</option>
 					<option value="Izin Keluar">Izin Keluar</option>
 					<option value="Peminjaman Kendaraan">Peminjaman Kendaraan</option>
+					<option value="Pengajuan BBM">Pengajuan BBM</option>
 					<option value="Lainnya">Lainnya</option>
 				</select>
 			</div>
@@ -555,11 +619,92 @@
 						/>
 					</div>
 				</div>
+			{:else if category === 'Pengajuan BBM'}
+				<!-- Fuel Submission Inputs -->
+				<div class="flex flex-col gap-2 sm:gap-4">
+					<div>
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="vehicle-type-fuel-select">
+							Jenis Kendaraan
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<select id="vehicle-type-fuel-select" bind:value={vehicle_type} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+							<option value="" disabled>
+								{isLoadingVehicles ? 'Memuat data kendaraan...' : 'Pilih Jenis Kendaraan'}
+							</option>
+							
+							{#if vehicles.length > 0}
+								{#each vehicles as vehicle}
+									<option value={formatVehicleOption(vehicle)}>
+										{formatVehicleOption(vehicle)}
+									</option>
+								{/each}
+							{/if}
+						</select>
+					</div>
+					<div>
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="initial-fuel">
+							Jumlah Awal Bensin (Liter)
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							id="initial-fuel"
+							type="string"
+							step="0.1"
+							min="0"
+							bind:value={initial_fuel}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Contoh: 2 Strip"
+						/>
+					</div>
+					<div>
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="initial-kilometer">
+							Kilometer Awal
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							id="initial-kilometer"
+							type="number"
+							min="0"
+							bind:value={initial_kilometer}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Contoh: 120000"
+						/>
+					</div>
+					<div>
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="submission-amount">
+							Nominal Pengajuan (Rp)
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							id="submission-amount"
+							type="number"
+							min="0"
+							bind:value={submission_amount}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Contoh: 500000"
+						/>
+					</div>
+					<div>
+						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="destination">
+							Tujuan
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							id="destination"
+							type="text"
+							bind:value={destination}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Contoh: PT. Trix Indonesia"
+						/>
+					</div>
+				</div>
 			{/if}
 			<div>
 				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="desc-input">
 					{#if category === 'Izin Keluar'}
 						Keperluan Izin
+					{:else if category === 'Pengajuan BBM'}
+						Keterangan Pengajuan
 					{:else}
 						Judul Deskripsi
 					{/if}
@@ -569,7 +714,7 @@
 					id="desc-input"
 					type="text"
 					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
-					placeholder={category === 'Izin Keluar' ? 'Tuliskan keperluan izin Anda' : 'Tuliskan kategori lain'}
+					placeholder={category === 'Izin Keluar' ? 'Tuliskan keperluan izin Anda' : category === 'Pengajuan BBM' ? 'Tuliskan keterangan pengajuan BBM' : 'Tuliskan kategori lain'}
 					bind:value={desc}
 				/>
 			</div>
@@ -603,6 +748,8 @@
 				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="ticket-textarea">
 					{#if category === 'Izin Keluar'}
 						Detail Keperluan
+					{:else if category === 'Pengajuan BBM'}
+						Detail Pengajuan
 					{:else}
 						Detail Masalah
 					{/if}
@@ -613,7 +760,7 @@
 					bind:value={ticket}
 					rows="2"
 					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base resize-none"
-					placeholder={category === 'Izin Keluar' ? 'Jelaskan detail keperluan izin Anda' : 'Jelaskan detail masalah yang Anda alami'}
+					placeholder={category === 'Izin Keluar' ? 'Jelaskan detail keperluan izin Anda' : category === 'Pengajuan BBM' ? 'Jelaskan detail pengajuan BBM Anda' : 'Jelaskan detail masalah yang Anda alami'}
 				></textarea>
 			</div>
 			<!-- Attachment/Screenshot -->
