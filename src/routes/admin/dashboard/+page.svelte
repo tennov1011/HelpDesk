@@ -89,7 +89,8 @@
 					initial_fuel: t.initial_fuel,
 					initial_kilometer: t.initial_kilometer,
 					submission_amount: t.submission_amount,
-					destination: t.destination
+					destination: t.destination,
+					date_used: t.date_used || '', // Tambahkan date_used jika ada
 				}));
 		} catch (e) {
 			console.error('Gagal mengambil tiket:', e);

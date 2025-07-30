@@ -23,20 +23,21 @@
 	let device = '';
 	let label = '';
 	let location = '';
-	
+
 	// Vehicle Borrowing field
 	let vehicle_type = '';
-	
+	let date_used = '';
+
 	// Permission to Leave fields
 	let departure_time = '';
 	let estimated_return_time = '';
-	
+
 	// Fuel Submission fields
 	let initial_fuel = '';
 	let initial_kilometer = '';
 	let submission_amount = '';
 	let destination = '';
-	
+
 	export let employee = null;
 
 	// Vehicles data from Directus
@@ -172,7 +173,7 @@
 		} catch (error) {
 			console.error('Error fetching vehicles:', error);
 			// Fallback to legacy options if API fails
-			vehicles = legacyVehicleTypeOptions.map(name => ({
+			vehicles = legacyVehicleTypeOptions.map((name) => ({
 				nama: name,
 				jenis: 'Legacy',
 				plat_nomor: '',
@@ -195,14 +196,14 @@
 
 	// Check if vehicle is available
 	function isVehicleAvailable(vehicle) {
-		return vehicle.status !== 'Service' && vehicle.status !== 'Rusak' && vehicle.status !== 'Dipinjam';
+		return (
+			vehicle.status !== 'Service' && vehicle.status !== 'Rusak' && vehicle.status !== 'Dipinjam'
+		);
 	}
 
 	// Fungsi untuk mendapatkan status kendaraan
 	function getVehicleStatus(vehicleOption) {
-		const vehicle = vehicles.find(v => 
-			formatVehicleOption(v) === vehicleOption
-		);
+		const vehicle = vehicles.find((v) => formatVehicleOption(v) === vehicleOption);
 		return vehicle ? vehicle.status : '';
 	}
 
@@ -257,6 +258,7 @@
 			submission_amount,
 			destination,
 			app_type,
+			date_used,
 			date_created: new Date().toISOString()
 		};
 
@@ -285,7 +287,7 @@
 				isLoading = false;
 				return;
 			}
-			
+
 			// Convert time strings to timestamp format for database
 			const today = new Date().toISOString().split('T')[0];
 			data.departure_time = `${today}T${data.departure_time}:00.000Z`;
@@ -329,13 +331,30 @@
 			delete data.initial_fuel;
 			delete data.initial_kilometer;
 			delete data.submission_amount;
-			delete data.destination;
 		}
 
-		if (data.category === 'Peminjaman Kendaraan' && !vehicle_type) {
-			showNotification('error', 'Jenis Kendaraan harus diisi');
-			isLoading = false;
-			return;
+		// Handle vehicle borrowing validation
+		if (data.category === 'Peminjaman Kendaraan') {
+			if (!vehicle_type) {
+				showNotification('error', 'Jenis Kendaraan harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!data.destination) {
+				showNotification('error', 'Tujuan harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!data.date_used) {
+				showNotification('error', 'Tanggal Pemakaian harus diisi');
+				isLoading = false;
+				return;
+			}
+		}
+
+		// Remove destination field for categories that don't use it
+		if (data.category !== 'Peminjaman Kendaraan' && data.category !== 'Pengajuan BBM') {
+			delete data.destination;
 		}
 
 		try {
@@ -355,6 +374,8 @@
 			url_name_app = '';
 			browser = '';
 			device = '';
+			vehicle_type = '';
+			date_used = '';
 			label = '';
 			location = '';
 			vehicle_type = '';
@@ -399,7 +420,7 @@
 	onMount(() => {
 		document.addEventListener('keydown', handleKeydown);
 		document.addEventListener('mousedown', handleClickOutside);
-		
+
 		// Fetch vehicles when component mounts
 		if (category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM' || category === '') {
 			fetchVehicles();
@@ -407,7 +428,10 @@
 	});
 
 	// Watch category changes to fetch vehicles when needed
-	$: if ((category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM') && vehicles.length === 0) {
+	$: if (
+		(category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM') &&
+		vehicles.length === 0
+	) {
 		fetchVehicles();
 	}
 
@@ -415,6 +439,9 @@
 	$: if (category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM') {
 		target_department = 'HRD';
 	}
+
+	// Tambahkan reactive statement di bawah deklarasi variable ticket
+	$: isTicketRequired = category !== 'Peminjaman Kendaraan' && category !== 'Pengajuan BBM';
 
 	onDestroy(() => {
 		document.removeEventListener('keydown', handleKeydown);
@@ -466,11 +493,18 @@
 		<form on:submit={handleSubmit} class="flex flex-col gap-2 sm:gap-4 w-full mt-6 sm:mt-0">
 			<!-- Dropdown Main Category -->
 			<div>
-				<label class="block font-medium mb-0 text-xs sm:text-base flex items-center gap-0.5" for="category-select">
+				<label
+					class="block font-medium mb-0 text-xs sm:text-base flex items-center gap-0.5"
+					for="category-select"
+				>
 					Kategori
 					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
-				<select id="category-select" bind:value={category} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+				<select
+					id="category-select"
+					bind:value={category}
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+				>
 					<option value="" disabled>Pilih Kategori</option>
 					<option value="Sistem">Sistem</option>
 					<option value="Asset">Asset</option>
@@ -485,11 +519,18 @@
 				<!-- System Inputs -->
 				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="app-type-select">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="app-type-select"
+						>
 							Jenis Aplikasi
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
-						<select id="app-type-select" bind:value={app_type} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+						<select
+							id="app-type-select"
+							bind:value={app_type}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+						>
 							<option value="" disabled>Pilih Jenis Aplikasi</option>
 							{#each appTypeOptions as opt}
 								<option value={opt}>{opt}</option>
@@ -497,7 +538,10 @@
 						</select>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="url-app-input">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="url-app-input"
+						>
 							Nama Aplikasi/URL
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -510,7 +554,9 @@
 						/>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium" for="browser-input">Browser/Perangkat yang Digunakan</label>
+						<label class="text-xs sm:text-base font-medium" for="browser-input"
+							>Browser/Perangkat yang Digunakan</label
+						>
 						<input
 							id="browser-input"
 							type="text"
@@ -524,11 +570,18 @@
 				<!-- Infrastructure Inputs -->
 				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="device-select">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="device-select"
+						>
 							Jenis Perangkat
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
-						<select id="device-select" bind:value={device} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+						<select
+							id="device-select"
+							bind:value={device}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+						>
 							<option value="" disabled>Pilih Jenis Perangkat</option>
 							{#each deviceTypeOptions as opt}
 								<option value={opt}>{opt}</option>
@@ -536,7 +589,9 @@
 						</select>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium" for="label-input">Nomor/Label Aset (Jika ada ditambahkan)</label>
+						<label class="text-xs sm:text-base font-medium" for="label-input"
+							>Nomor/Label Aset (Jika ada ditambahkan)</label
+						>
 						<input
 							id="label-input"
 							type="text"
@@ -546,7 +601,10 @@
 						/>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="location-input">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="location-input"
+						>
 							Lokasi Perangkat
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -563,19 +621,26 @@
 				<!-- Vehicle Borrowing Inputs -->
 				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="vehicle-type-select">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="vehicle-type-select"
+						>
 							Jenis Kendaraan
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
-						<select id="vehicle-type-select" bind:value={vehicle_type} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+						<select
+							id="vehicle-type-select"
+							bind:value={vehicle_type}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+						>
 							<option value="" disabled>
 								{isLoadingVehicles ? 'Memuat data kendaraan...' : 'Pilih Jenis Kendaraan'}
 							</option>
-							
+
 							{#if vehicles.length > 0}
 								{#each vehicles as vehicle}
-									<option 
-										value={formatVehicleOption(vehicle)} 
+									<option
+										value={formatVehicleOption(vehicle)}
 										disabled={!isVehicleAvailable(vehicle)}
 									>
 										{formatVehicleOption(vehicle)} - {formatVehicleStatus(vehicle)}
@@ -583,19 +648,52 @@
 								{/each}
 							{/if}
 						</select>
-						
-						{#if vehicles.some(v => !isVehicleAvailable(v))}
+
+						{#if vehicles.some((v) => !isVehicleAvailable(v))}
 							<p class="text-xs text-gray-500 mt-1">
 								Kendaraan dengan status Service, Rusak, atau Dipinjam tidak dapat dipilih.
 							</p>
 						{/if}
 					</div>
 				</div>
+				<div>
+					<!-- Tanggal Pemakaian Kendaraan -->
+					<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="date-used">
+						Tanggal Pemakaian Kendaraan
+						<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+					</label>
+					<input
+						id="date-used"
+						type="date"
+						bind:value={date_used}
+						class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+						required
+					/>
+				</div>
+				<div>
+					<label
+						class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+						for="destination"
+					>
+						Tujuan
+						<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+					</label>
+					<input
+						id="destination"
+						type="text"
+						bind:value={destination}
+						class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+						placeholder="Contoh: PT. Trix Indonesia"
+					/>
+				</div>
 			{:else if category === 'Izin Keluar'}
 				<!-- Permission to Leave Inputs -->
 				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="departure-time">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="departure-time"
+						>
 							Jam Keluar
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -607,7 +705,10 @@
 						/>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="return-time">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="return-time"
+						>
 							Jam Estimasi Kembali
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -623,15 +724,22 @@
 				<!-- Fuel Submission Inputs -->
 				<div class="flex flex-col gap-2 sm:gap-4">
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="vehicle-type-fuel-select">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="vehicle-type-fuel-select"
+						>
 							Jenis Kendaraan
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
-						<select id="vehicle-type-fuel-select" bind:value={vehicle_type} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+						<select
+							id="vehicle-type-fuel-select"
+							bind:value={vehicle_type}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+						>
 							<option value="" disabled>
 								{isLoadingVehicles ? 'Memuat data kendaraan...' : 'Pilih Jenis Kendaraan'}
 							</option>
-							
+
 							{#if vehicles.length > 0}
 								{#each vehicles as vehicle}
 									<option value={formatVehicleOption(vehicle)}>
@@ -642,7 +750,10 @@
 						</select>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="initial-fuel">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="initial-fuel"
+						>
 							Jumlah Awal Bensin (Liter)
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -657,7 +768,10 @@
 						/>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="initial-kilometer">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="initial-kilometer"
+						>
 							Kilometer Awal
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -671,7 +785,10 @@
 						/>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="submission-amount">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="submission-amount"
+						>
 							Nominal Pengajuan (Rp)
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -685,7 +802,10 @@
 						/>
 					</div>
 					<div>
-						<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="destination">
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="destination"
+						>
 							Tujuan
 							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 						</label>
@@ -714,16 +834,27 @@
 					id="desc-input"
 					type="text"
 					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
-					placeholder={category === 'Izin Keluar' ? 'Tuliskan keperluan izin Anda' : category === 'Pengajuan BBM' ? 'Tuliskan keterangan pengajuan BBM' : 'Tuliskan kategori lain'}
+					placeholder={category === 'Izin Keluar'
+						? 'Tuliskan keperluan izin Anda'
+						: category === 'Pengajuan BBM'
+							? 'Tuliskan keterangan pengajuan BBM'
+							: 'Tuliskan kategori lain'}
 					bind:value={desc}
 				/>
 			</div>
 			<div>
-				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="department-select">
+				<label
+					class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+					for="department-select"
+				>
 					Departemen Tujuan
 					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
-				<select id="department-select" bind:value={target_department} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+				<select
+					id="department-select"
+					bind:value={target_department}
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+				>
 					<option value="" disabled>Pilih Departemen Tujuan</option>
 					{#each departmentOptions as opt}
 						<option value={opt}>{opt}</option>
@@ -732,11 +863,18 @@
 			</div>
 			<!-- Priority General -->
 			<div>
-				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="priority-select">
+				<label
+					class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+					for="priority-select"
+				>
 					Prioritas
 					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
-				<select id="priority-select" bind:value={priority} class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base">
+				<select
+					id="priority-select"
+					bind:value={priority}
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+				>
 					<option value="" disabled>Pilih Prioritas</option>
 					{#each priorityOptions as opt}
 						<option value={opt}>{opt}</option>
@@ -744,28 +882,39 @@
 				</select>
 			</div>
 			<!-- Ticket Detail General -->
-			<div>
-				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="ticket-textarea">
-					{#if category === 'Izin Keluar'}
-						Detail Keperluan
-					{:else if category === 'Pengajuan BBM'}
-						Detail Pengajuan
-					{:else}
-						Detail Masalah
-					{/if}
-					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
-				</label>
-				<textarea
-					id="ticket-textarea"
-					bind:value={ticket}
-					rows="2"
-					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base resize-none"
-					placeholder={category === 'Izin Keluar' ? 'Jelaskan detail keperluan izin Anda' : category === 'Pengajuan BBM' ? 'Jelaskan detail pengajuan BBM Anda' : 'Jelaskan detail masalah yang Anda alami'}
-				></textarea>
-			</div>
+			{#if isTicketRequired}
+				<div>
+					<label
+						class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+						for="ticket-textarea"
+					>
+						{#if category === 'Izin Keluar'}
+							Detail Keperluan
+						{:else if category === 'Pengajuan BBM'}
+							Detail Pengajuan
+						{:else}
+							Detail Masalah
+						{/if}
+						<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+					</label>
+					<textarea
+						id="ticket-textarea"
+						bind:value={ticket}
+						rows="2"
+						class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base resize-none"
+						placeholder={category === 'Izin Keluar'
+							? 'Jelaskan detail keperluan izin Anda'
+							: category === 'Pengajuan BBM'
+								? 'Jelaskan detail pengajuan BBM Anda'
+								: 'Jelaskan detail masalah yang Anda alami'}
+					></textarea>
+				</div>
+			{/if}
 			<!-- Attachment/Screenshot -->
 			<div>
-				<label class="text-xs sm:text-base font-medium" for="file-input">Lampiran/Screenshot (Opsional)</label>
+				<label class="text-xs sm:text-base font-medium" for="file-input"
+					>Lampiran/Screenshot (Opsional)</label
+				>
 				<input
 					id="file-input"
 					type="file"
@@ -784,10 +933,16 @@
 			<!-- Follow Up -->
 			<div>
 				<fieldset>
-					<legend class="text-xs sm:text-base font-medium">Apakah Anda ingin follow up? (Opsional)</legend>
+					<legend class="text-xs sm:text-base font-medium"
+						>Apakah Anda ingin follow up? (Opsional)</legend
+					>
 					<div class="flex gap-2 sm:gap-3 mt-0.5">
-						<label class="text-xs sm:text-base"><input type="radio" bind:group={followUp} value="yes" /> Ya</label>
-						<label class="text-xs sm:text-base"><input type="radio" bind:group={followUp} value="no" /> Tidak</label>
+						<label class="text-xs sm:text-base"
+							><input type="radio" bind:group={followUp} value="yes" /> Ya</label
+						>
+						<label class="text-xs sm:text-base"
+							><input type="radio" bind:group={followUp} value="no" /> Tidak</label
+						>
 					</div>
 					{#if followUp === 'yes'}
 						<input

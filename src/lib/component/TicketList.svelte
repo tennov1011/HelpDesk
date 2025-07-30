@@ -298,8 +298,9 @@
 				['email', ticket.email],
 				['kategori', ticket.category],
 				['kendaraan', vehicleInfo],
+				['tujuan', ticket.destination],
+				['tanggal Pemakaian Kendaraan', formatDateVehicle(ticket.date_used)],
 				['peminjam sebelumnya', 'Mencari data...'],
-				['detail', ticket.ticket],
 				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
 				['PIC', ticket.pic]
 			];
@@ -337,7 +338,6 @@
 				['Kilometer Sebelumnya', 'Mencari data...'],
 				['Nominal Pengajuan', ticket.submission_amount],
 				['Tujuan', ticket.destination],
-				['detail', ticket.ticket],
 				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
 				['PIC', ticket.pic]
 			];
@@ -587,6 +587,16 @@
 		const hours = String(d.getHours()).padStart(2, '0');
 		const minutes = String(d.getMinutes()).padStart(2, '0');
 		return `${day}/${month}/${year} ${hours}:${minutes}`;
+	}
+
+		function formatDateVehicle(dateStr) {
+		if (!dateStr) return '';
+		const d = new Date(dateStr);
+		if (isNaN(d.getTime())) return dateStr;
+		const day = String(d.getDate()).padStart(2, '0');
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const year = d.getFullYear();
+		return `${day}/${month}/${year}`;
 	}
 
 	// Function to format numbers with thousand separators
