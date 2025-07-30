@@ -663,7 +663,7 @@
 						</label>
 						<input
 							id="initial-kilometer"
-							type="number"
+							type="string"
 							min="0"
 							bind:value={initial_kilometer}
 							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"

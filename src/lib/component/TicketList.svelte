@@ -1061,7 +1061,12 @@
 		// Function to extract first name from full name
 		function getFirstName(fullName) {
 			if (!fullName) return '';
-			return fullName.split(' ')[0]; // Get first word/name
+			const nameParts = fullName.split(' ');
+			// Ambil maksimal 2 kata pertama (first name + second name)
+			if (nameParts.length >= 2) {
+				return `${nameParts[0]} ${nameParts[1]}`;
+			}
+			return nameParts[0]; // Jika hanya ada 1 kata, return nama tersebut
 		}
 
 		// Function to get previous kilometer data
@@ -1385,7 +1390,12 @@
 		// Function to extract first name from full name
 		function getFirstName(fullName) {
 			if (!fullName) return '';
-			return fullName.split(' ')[0]; // Get first word/name
+			const nameParts = fullName.split(' ');
+			// Ambil maksimal 2 kata pertama (first name + second name)
+			if (nameParts.length >= 2) {
+				return `${nameParts[0]} ${nameParts[1]}`;
+			}
+			return nameParts[0]; // Jika hanya ada 1 kata, return nama tersebut
 		}
 
 		try {
