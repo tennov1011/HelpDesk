@@ -5,9 +5,17 @@
 	import { roleDefinitions } from '$lib/services/firebaseConfig.js';
 	export let tickets = [];
 	export let isAdmin = false; // <-- tambahkan ini
+	export let adminDepartment = ''; // Departmen admin yang login
 	export let showNames = true;
 	export let showPriority = true;
 	export let showDate = true;
+
+	// Debug adminDepartment
+	$: console.log('TicketList - isAdmin:', isAdmin, 'adminDepartment:', adminDepartment);
+	
+	// Reactive variable to track if user is HRD admin
+	$: isHrdAdmin = isAdmin && adminDepartment === 'HRD';
+	$: console.log('TicketList - isHrdAdmin:', isHrdAdmin);
 	export let showDivisions = true;
 	export let showDescription = true;
 	export let showDepartments = false;
@@ -15,13 +23,10 @@
 	export let ticketUpdates = [];
 
 	const dispatch = createEventDispatcher();
-
-	let showDetailModal = false;
 	let selectedTicket = null;
 	let detailFields = [];
 	let updatingStatusId = null;
 	let isLoading = false;
-	let selectedPic = '';
 	let showUpdateModal = false;
 	let updateForm = {
 		id: '',
@@ -1884,6 +1889,7 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 				<option value="name">Nama</option>
 				<option value="division">Divisi</option>
 				<option value="priority">Prioritas</option>
+				<option value="vehicle">Kendaraan</option>
 				<option value="status">Status</option>
 				<option value="department">Departemen</option>
 			</select>
@@ -2028,7 +2034,12 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 					{/if}
 
 					<!-- Desktop columns (hidden on mobile) -->
-					{#if showPriority}
+					{#if showPriority && !isAdmin}
+						<th class="text-center hidden md:table-cell">Prioritas</th>
+					{/if}
+					{#if isHrdAdmin}
+						<th class="text-center hidden md:table-cell">Kendaraan</th>
+					{:else if isAdmin && showPriority}
 						<th class="text-center hidden md:table-cell">Prioritas</th>
 					{/if}
 					{#if showDate}
@@ -2082,7 +2093,18 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 						{/if}
 
 						<!-- Desktop columns (hidden on mobile) -->
-						{#if showPriority}
+						{#if showPriority && !isAdmin}
+							<td class="text-center hidden md:table-cell">{ticket.priority}</td>
+						{/if}
+						{#if isHrdAdmin}
+							<td class="text-center hidden md:table-cell">
+								{#if ticket.category === 'Pengajuan BBM' || ticket.category === 'Peminjaman Kendaraan'}
+									{ticket.vehicle_type || 'Tidak ada kendaraan'}
+								{:else}
+									-
+								{/if}
+							</td>
+						{:else if isAdmin && showPriority}
 							<td class="text-center hidden md:table-cell">{ticket.priority}</td>
 						{/if}
 						{#if showDate}

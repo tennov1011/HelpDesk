@@ -11,6 +11,7 @@
 	let loading = false;
 	let error = '';
 	let isLoggedIn = false;
+	let showPassword = false;
 
 	// Store references
 	let login = null;
@@ -244,15 +245,59 @@
 							<input
 								id="password"
 								name="password"
-								type="password"
+								type={showPassword ? 'text' : 'password'}
 								autocomplete="current-password"
 								required
 								bind:value={password}
 								on:keypress={handleKeyPress}
 								disabled={loading}
-								class="block w-full pl-8 sm:pl-10 pr-3 py-2.5 sm:py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
+								class="block w-full pl-8 sm:pl-10 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors disabled:bg-gray-50 disabled:text-gray-500"
 								placeholder="Masukkan password"
 							/>
+							<button
+								type="button"
+								class="absolute inset-y-0 right-0 pr-2 sm:pr-3 flex items-center"
+								on:click={() => (showPassword = !showPassword)}
+								disabled={loading}
+							>
+								{#if showPassword}
+									<!-- Eye Slash Icon (Hide Password) -->
+									<svg
+										class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 transition-colors"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M3 3l18 18M10.584 10.587a2 2 0 002.828 2.83M9.363 5.365A9 9 0 0112 5c4.418 0 8 3.582 8 8a8.95 8.95 0 01-1.087 4.294M6.675 6.675A8.95 8.95 0 005 12c0 4.418 3.582 8 8 8a8.93 8.93 0 004.325-1.088"
+										/>
+									</svg>
+								{:else}
+									<!-- Eye Icon (Show Password) -->
+									<svg
+										class="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 transition-colors"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+										/>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+										/>
+									</svg>
+								{/if}
+							</button>
 						</div>
 					</div>
 

@@ -824,23 +824,29 @@
 					{#if category === 'Izin Keluar'}
 						Keperluan Izin
 					{:else if category === 'Pengajuan BBM'}
-						Keterangan Pengajuan
+						Keperluan
+					{:else if category === 'Peminjaman Kendaraan'}
+						Keperluan
 					{:else}
-						Judul Deskripsi
+						Deskripsi
 					{/if}
 					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
 				<input
-					id="desc-input"
-					type="text"
-					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
-					placeholder={category === 'Izin Keluar'
-						? 'Tuliskan keperluan izin Anda'
-						: category === 'Pengajuan BBM'
-							? 'Tuliskan keterangan pengajuan BBM'
-							: 'Tuliskan kategori lain'}
-					bind:value={desc}
-				/>
+				   id="desc-input"
+				   type="text"
+				   class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+				   placeholder={
+					   category === 'Izin Keluar'
+						   ? 'Tuliskan keperluan izin Anda'
+						   : category === 'Pengajuan BBM'
+							   ? 'Tuliskan keperluan pengajuan BBM'
+							   : category === 'Peminjaman Kendaraan'
+								   ? 'Tuliskan keperluan anda'
+								   : 'Tuliskan keperluan anda'
+				   }
+				   bind:value={desc}
+			   />
 			</div>
 			<div>
 				<label

@@ -43,6 +43,7 @@
 	// Subscribe to user department store to track admin's department
 	userDepartment.subscribe((dept) => {
 		adminDepartment = dept;
+		console.log('Dashboard - adminDepartment updated:', adminDepartment);
 	});
 
 	// Check if current user is HRD admin using the helper function
@@ -747,6 +748,7 @@
 			<TicketList
 				tickets={filteredTickets}
 				isAdmin={true}
+				{adminDepartment}
 				showDepartments={isGeneralManager($userEmail)}
 				{ticketUpdates}
 				on:deleted={fetchTickets}
