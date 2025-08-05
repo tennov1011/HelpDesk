@@ -77,6 +77,10 @@
 		totalKilometer: 0
 	};
 
+	// Detail modal variables
+	let showDetailModal = false;
+	let selectedPic = '';
+
 	const DIRECTUS_URL = 'https://directus.eltamaprimaindo.com';
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
 	const rowsPerPage = 6;
@@ -218,10 +222,9 @@
 		return 'bg-gray-300 text-gray-700';
 	}
 
-	function openDetail(ticket) {
-		selectedTicket = ticket;
-		selectedPic = ticket.pic || '';
-		// Tentukan field detail berdasarkan kategori
+	function getDetailFields(ticket) {
+		let detailFields = [];
+		
 		if (
 			ticket.category &&
 			typeof ticket.category === 'string' &&
@@ -289,6 +292,71 @@
 				['PIC', ticket.pic]
 			];
 		} else if (
+			ticket.category &&
+			typeof ticket.category === 'string' &&
+			ticket.category.toLowerCase() === 'peminjaman kendaraan'
+		) {
+			const vehicleInfo = ticket.vehicle_type || '-';
+			detailFields = [
+				['nama pemohon', ticket.name],
+				['divisi', ticket.division],
+				['email', ticket.email],
+				['kategori', ticket.category],
+				['kendaraan', vehicleInfo],
+				['tujuan', ticket.destination],
+				['tanggal Pemakaian Kendaraan', formatDateVehicle(ticket.date_used)],
+				['peminjam sebelumnya', 'Mencari data...'],
+				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
+				['PIC', ticket.pic]
+			];
+		} else if (
+			ticket.category &&
+			typeof ticket.category === 'string' &&
+			ticket.category.toLowerCase() === 'pengajuan bbm'
+		) {
+			const vehicleInfo = ticket.vehicle_type || '-';
+			detailFields = [
+				['nama', ticket.name],
+				['divisi', ticket.division],
+				['email', ticket.email],
+				['kategori', ticket.category],
+				['kendaraan', vehicleInfo],
+				['Jumlah Awal BBM', ticket.initial_fuel],
+				['Kilometer Awal', ticket.initial_kilometer],
+				['Kilometer Sebelumnya', 'Mencari data...'],
+				['Nominal Pengajuan', ticket.submission_amount],
+				['Tujuan', ticket.destination],
+				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
+				['PIC', ticket.pic]
+			];
+		} else if (
+			ticket.category &&
+			typeof ticket.category === 'string' &&
+			ticket.category.toLowerCase() === 'lainnya'
+		) {
+			detailFields = [
+				['nama', ticket.name],
+				['divisi', ticket.division],
+				['email', ticket.email],
+				['kategori', ticket.category],
+				['detail', ticket.ticket],
+				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
+				['PIC', ticket.pic]
+			];
+		} else {
+			// Tampilkan semua field selain photo_ticket
+			detailFields = Object.entries(ticket).filter(([key]) => key !== 'photo_ticket');
+		}
+		
+		return detailFields;
+	}
+
+	function openDetail(ticket) {
+		selectedTicket = ticket;
+		selectedPic = ticket.pic || '';
+		
+		// Special handling for categories that need async data
+		if (
 			ticket.category &&
 			typeof ticket.category === 'string' &&
 			ticket.category.toLowerCase() === 'peminjaman kendaraan'
@@ -361,24 +429,11 @@
 
 			// Return early to prevent the code after the if-else block from executing
 			return;
-		} else if (
-			ticket.category &&
-			typeof ticket.category === 'string' &&
-			ticket.category.toLowerCase() === 'lainnya'
-		) {
-			detailFields = [
-				['nama', ticket.name],
-				['divisi', ticket.division],
-				['email', ticket.email],
-				['kategori', ticket.category],
-				['detail', ticket.ticket],
-				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
-				['PIC', ticket.pic]
-			];
 		} else {
-			// Tampilkan semua field selain photo_ticket
-			detailFields = Object.entries(ticket).filter(([key]) => key !== 'photo_ticket');
+			// For all other categories, use the getDetailFields function
+			detailFields = getDetailFields(ticket);
 		}
+		
 		if (isAdmin) {
 			dispatch('openDetail', { ticket, detailFields });
 		} else {
