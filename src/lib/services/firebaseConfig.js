@@ -110,6 +110,7 @@ export const roleDefinitions = [
   { email: 'ryo@eltama.com', role: 'user', department: 'Project' },
   { email: 'julianto@eltama.com', role: 'user', department: 'Project' },
   { email: 'panji@eltama.com', role: 'user', department: 'Project' },
+  { email: 'angga@eltama.com', role: 'user', department: 'Project' },
   
   { email: 'irsyad@eltama.com', role: 'user', department: 'Project' },
   { email: 'taufik@eltama.com', role: 'user', department: 'Project' },

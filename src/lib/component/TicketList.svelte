@@ -4,6 +4,7 @@
 	import jsPDF from 'jspdf';
 	import { roleDefinitions } from '$lib/services/firebaseConfig.js';
 	import RekapitulasiEtol from './RekapitulasiEtol.svelte';
+	import RekapitulasiBBM from './RekapitulasiBBM.svelte';
 	export let tickets = [];
 	export let isAdmin = false; // <-- tambahkan ini
 	export let adminDepartment = ''; // Departmen admin yang login
@@ -13,7 +14,7 @@
 
 	// Debug adminDepartment
 	$: console.log('TicketList - isAdmin:', isAdmin, 'adminDepartment:', adminDepartment);
-	
+
 	// Reactive variable to track if user is HRD admin
 	$: isHrdAdmin = isAdmin && adminDepartment === 'HRD';
 	$: console.log('TicketList - isHrdAdmin:', isHrdAdmin);
@@ -66,20 +67,14 @@
 	let editingTicket = null;
 	let editNominalForm = {
 		id: '',
-		submission_amount: ''
+		submission_amount: '',
+		initial_kilometer: ''
 	};
 
-	// Rekapitulasi variables
-	let showRekapModal = false;
-	let rekapData = {
-		monthlyTotal: [],
-		vehicleTotal: [],
-		totalNominal: 0,
-		totalKilometer: 0
-	};
+	// Rekapitulasi variables (moved to separate components)
+	let rekapitulasiBBM;
 
 	// Rekapitulasi E-Tol variables
-	let showRekapEtolModal = false;
 	let rekapitulasiEtol;
 
 	// Detail modal variables
@@ -229,7 +224,7 @@
 
 	function getDetailFields(ticket) {
 		let detailFields = [];
-		
+
 		if (
 			ticket.category &&
 			typeof ticket.category === 'string' &&
@@ -346,7 +341,12 @@
 				['kategori', ticket.category],
 				['No E-Tol', ticket.no_etol || '-'],
 				['Saldo Awal', ticket.initial_balance || '-'],
-				['Nominal Top Up', ticket.etol_submission_amount ? 'Rp ' + parseFloat(ticket.etol_submission_amount).toLocaleString('id-ID') : '-'],
+				[
+					'Nominal Top Up',
+					ticket.etol_submission_amount
+						? 'Rp ' + parseFloat(ticket.etol_submission_amount).toLocaleString('id-ID')
+						: '-'
+				],
 				['Tujuan', ticket.etol_destination || ticket.destination || '-'],
 				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
 				['PIC', ticket.pic]
@@ -369,17 +369,17 @@
 			// Tampilkan semua field selain photo_ticket
 			detailFields = Object.entries(ticket).filter(([key]) => key !== 'photo_ticket');
 		}
-		
+
 		return detailFields;
 	}
 
 	function openDetail(ticket) {
 		selectedTicket = ticket;
 		selectedPic = ticket.pic || '';
-		
+
 		// Get initial detail fields using the centralized function
 		detailFields = getDetailFields(ticket);
-		
+
 		// Special handling for categories that need async data
 		if (
 			ticket.category &&
@@ -429,7 +429,7 @@
 			// For all other categories, use the getDetailFields function result
 			// detailFields is already set above from getDetailFields(ticket)
 		}
-		
+
 		if (isAdmin) {
 			dispatch('openDetail', { ticket, detailFields });
 		} else {
@@ -645,7 +645,7 @@
 		return `${day}/${month}/${year} ${hours}:${minutes}`;
 	}
 
-		function formatDateVehicle(dateStr) {
+	function formatDateVehicle(dateStr) {
 		if (!dateStr) return '';
 		const d = new Date(dateStr);
 		if (isNaN(d.getTime())) return dateStr;
@@ -721,7 +721,8 @@
 		editingTicket = { ...ticket }; // Clone object untuk keamanan
 		editNominalForm = {
 			id: ticket.rawId || ticket.id, // Gunakan rawId jika ada
-			submission_amount: ticket.submission_amount || ''
+			submission_amount: ticket.submission_amount || '',
+			initial_kilometer: ticket.initial_kilometer || ''
 		};
 		showEditNominalModal = true;
 
@@ -734,7 +735,8 @@
 		editingTicket = null;
 		editNominalForm = {
 			id: '',
-			submission_amount: ''
+			submission_amount: '',
+			initial_kilometer: ''
 		};
 		window.removeEventListener('keydown', handleEditNominalModalEsc);
 	}
@@ -753,6 +755,16 @@
 			isNaN(parseFloat(editNominalForm.submission_amount))
 		) {
 			alert('Nominal pengajuan harus berupa angka yang valid');
+			isLoading = false;
+			return;
+		}
+
+		// Validasi kilometer awal jika diisi
+		if (
+			editNominalForm.initial_kilometer &&
+			isNaN(parseFloat(editNominalForm.initial_kilometer))
+		) {
+			alert('Kilometer awal harus berupa angka yang valid');
 			isLoading = false;
 			return;
 		}
@@ -779,7 +791,8 @@
 			const response = await axios.patch(
 				`${DIRECTUS_URL}/items/TicketForm/${ticketRawId}`,
 				{
-					submission_amount: parseFloat(editNominalForm.submission_amount)
+					submission_amount: parseFloat(editNominalForm.submission_amount),
+					initial_kilometer: editNominalForm.initial_kilometer ? parseFloat(editNominalForm.initial_kilometer) : null
 				},
 				{
 					headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` }
@@ -794,7 +807,8 @@
 				if (ticketIndex !== -1) {
 					tickets[ticketIndex] = {
 						...tickets[ticketIndex],
-						submission_amount: parseFloat(editNominalForm.submission_amount)
+						submission_amount: parseFloat(editNominalForm.submission_amount),
+						initial_kilometer: editNominalForm.initial_kilometer ? parseFloat(editNominalForm.initial_kilometer) : null
 					};
 					tickets = [...tickets]; // Trigger reactivity
 					console.log('Updated local ticket:', tickets[ticketIndex]);
@@ -815,7 +829,8 @@
 					// Dispatch event dengan editingTicket jika tidak ditemukan di array lokal
 					const fallbackTicket = {
 						...editingTicket,
-						submission_amount: parseFloat(editNominalForm.submission_amount)
+						submission_amount: parseFloat(editNominalForm.submission_amount),
+						initial_kilometer: editNominalForm.initial_kilometer ? parseFloat(editNominalForm.initial_kilometer) : null
 					};
 					console.log('Dispatching fallback ticket:', fallbackTicket);
 					console.log('Fallback ticket has rawId:', !!fallbackTicket.rawId);
@@ -827,7 +842,7 @@
 					});
 				}
 
-				alert('Nominal pengajuan berhasil diperbarui');
+				alert('Nominal pengajuan dan kilometer awal berhasil diperbarui');
 				closeEditNominalModal();
 			}
 		} catch (error) {
@@ -851,124 +866,12 @@
 
 	// Fungsi untuk rekapitulasi (khusus role HRD dan General Manager)
 	async function openRekapModal() {
-		if (!isHrdOrGm()) {
-			alert('Fitur ini hanya dapat diakses oleh HRD dan General Manager.');
-			return;
-		}
-
-		isLoading = true;
-		showRekapModal = true;
-
-		try {
-			// Fetch all BBM tickets
-			const response = await axios.get(`${DIRECTUS_URL}/items/TicketForm`, {
-				headers: { Authorization: `Bearer ${DIRECTUS_TOKEN}` },
-				params: {
-					filter: {
-						category: { _eq: 'Pengajuan BBM' }
-					},
-					limit: -1 // Get all records
-				}
-			});
-
-			if (response.data && response.data.data) {
-				const bbmTickets = response.data.data;
-				calculateRekapData(bbmTickets);
-			}
-		} catch (error) {
-			console.error('Error fetching BBM data for rekap:', error);
-			alert('Gagal mengambil data untuk rekapitulasi');
-		} finally {
-			isLoading = false;
+		if (rekapitulasiBBM) {
+			await rekapitulasiBBM.openRekapModal();
 		}
 	}
 
-	function calculateRekapData(bbmTickets) {
-		// Calculate monthly totals
-		const monthlyData = {};
-		const vehicleData = {};
-		let totalNominal = 0;
-		let totalKilometer = 0;
-
-		bbmTickets.forEach((ticket) => {
-			const date = new Date(ticket.date_created || ticket.date);
-			const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-			const monthName = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
-
-			// Monthly totals
-			if (!monthlyData[monthKey]) {
-				monthlyData[monthKey] = {
-					month: monthName,
-					count: 0,
-					totalNominal: 0,
-					totalKilometer: 0,
-					details: []
-				};
-			}
-			monthlyData[monthKey].count++;
-
-			const nominal = parseFloat(ticket.submission_amount) || 0;
-			const kilometer = parseFloat(ticket.initial_kilometer) || 0;
-
-			monthlyData[monthKey].totalNominal += nominal;
-			monthlyData[monthKey].totalKilometer += kilometer;
-			monthlyData[monthKey].details.push({
-				id: ticket.id,
-				name: ticket.name,
-				vehicle: ticket.vehicle_type || '-',
-				nominal: nominal,
-				kilometer: kilometer,
-				date: new Date(ticket.date_created || ticket.date).toLocaleDateString('id-ID')
-			});
-
-			// Vehicle totals
-			const vehicleType = ticket.vehicle_type || 'Tidak Diketahui';
-			if (!vehicleData[vehicleType]) {
-				vehicleData[vehicleType] = {
-					vehicle: vehicleType,
-					count: 0,
-					totalNominal: 0,
-					totalKilometer: 0,
-					details: []
-				};
-			}
-			vehicleData[vehicleType].count++;
-			vehicleData[vehicleType].totalNominal += nominal;
-			vehicleData[vehicleType].totalKilometer += kilometer;
-			vehicleData[vehicleType].details.push({
-				id: ticket.id,
-				name: ticket.name,
-				nominal: nominal,
-				kilometer: kilometer,
-				date: new Date(ticket.date_created || ticket.date).toLocaleDateString('id-ID')
-			});
-
-			// Grand totals
-			totalNominal += nominal;
-			totalKilometer += kilometer;
-		});
-
-		// Convert to arrays and sort
-		const monthlyTotal = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
-		const vehicleTotal = Object.values(vehicleData).sort((a, b) => b.count - a.count);
-
-		rekapData = {
-			monthlyTotal,
-			vehicleTotal,
-			totalNominal,
-			totalKilometer
-		};
-	}
-
-	function closeRekapModal() {
-		showRekapModal = false;
-		rekapData = {
-			monthlyTotal: [],
-			vehicleTotal: [],
-			totalNominal: 0,
-			totalKilometer: 0
-		};
-	}
+	// BBM modal functions moved to RekapitulasiBBM.svelte component
 
 	// Fungsi untuk rekapitulasi E-Tol (khusus role HRD dan General Manager)
 	async function openRekapEtolModal() {
@@ -2722,6 +2625,22 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 				/>
 			</div>
 
+			<!-- Edit Kilometer Awal (initial_kilometer) -->
+			<div class="mb-4">
+				<label for="edit-initial-kilometer" class="block text-sm font-medium text-gray-700 mb-2">
+					Kilometer Awal (km)
+				</label>
+				<input
+					id="edit-initial-kilometer"
+					type="number"
+					class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+					bind:value={editNominalForm.initial_kilometer}
+					placeholder="Masukkan kilometer awal"
+					min="0"
+					step="1"
+				/>
+			</div>
+
 			<div class="flex gap-3 justify-end">
 				<button
 					type="button"
@@ -2749,245 +2668,12 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 	</div>
 {/if}
 
-<!-- Modal Rekapitulasi BBM (hanya untuk HRD dan General Manager) -->
-{#if showRekapModal}
-	<div
-		class="fixed inset-0 flex items-center justify-center z-50"
-		on:click={closeRekapModal}
-		role="button"
-		tabindex="0"
-		on:keydown={(e) => e.key === 'Escape' && closeRekapModal()}
-	>
-		<div
-			class="bg-white rounded-lg p-6 max-w-8xl w-full mx-4 shadow-2xl max-h-[70vh] overflow-y-auto"
-			on:click|stopPropagation
-			on:keydown={(e) => e.key === 'Enter' && e.stopPropagation()}
-			role="dialog"
-			tabindex="-1"
-			aria-labelledby="rekap-title"
-		>
-			<h3 id="rekap-title" class="text-2xl font-bold mb-6 text-gray-800 text-center">
-				📊 Rekapitulasi Pengajuan BBM
-			</h3>
-
-			{#if isLoading}
-				<div class="flex justify-center items-center py-8">
-					<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<span class="ml-2 text-gray-600">Memuat data...</span>
-				</div>
-			{:else}
-				<!-- Summary Cards -->
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-					<div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-						<h4 class="font-semibold text-blue-800 mb-2">💰 Total Nominal Pengajuan</h4>
-						<p class="text-2xl font-bold text-blue-600">{formatCurrency(rekapData.totalNominal)}</p>
-					</div>
-					<div class="bg-green-50 p-4 rounded-lg border border-green-200">
-						<h4 class="font-semibold text-green-800 mb-2">🛣️ Total Kilometer</h4>
-						<p class="text-2xl font-bold text-green-600">
-							{formatKilometer(rekapData.totalKilometer)} km
-						</p>
-					</div>
-				</div>
-
-				<!-- Monthly Summary -->
-				<div class="mb-8">
-					<h4 class="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-300 pb-2">
-						📅 Rekapitulasi Per Bulan
-					</h4>
-					{#if rekapData.monthlyTotal.length > 0}
-						<div class="overflow-x-auto">
-							<table class="w-full border border-gray-300 rounded-lg shadow-sm">
-								<thead class="bg-blue-50">
-									<tr>
-										<th class="px-4 py-3 text-left border-b font-semibold text-blue-800">Bulan</th>
-										<th class="px-4 py-3 text-center border-b font-semibold text-blue-800"
-											>Jumlah Pengajuan</th
-										>
-										<th class="px-4 py-3 text-right border-b font-semibold text-blue-800"
-											>Total Nominal</th
-										>
-										<th class="px-4 py-3 text-right border-b font-semibold text-blue-800"
-											>Total Kilometer</th
-										>
-									</tr>
-								</thead>
-								<tbody>
-									{#each rekapData.monthlyTotal as monthly}
-										<tr class="hover:bg-blue-25 transition-colors">
-											<td class="px-4 py-3 border-b font-medium">{monthly.month}</td>
-											<td class="px-4 py-3 text-center border-b">{monthly.count}</td>
-											<td class="px-4 py-3 text-right border-b font-medium text-green-600"
-												>{formatCurrency(monthly.totalNominal)}</td
-											>
-											<td class="px-4 py-3 text-right border-b"
-												>{formatKilometer(monthly.totalKilometer)} km</td
-											>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-
-						<!-- Detail pengajuan per bulan -->
-						<div class="mt-6">
-							<h5 class="text-md font-semibold mb-3 text-gray-700">
-								📋 Detail Pengajuan Per Bulan
-							</h5>
-							{#each rekapData.monthlyTotal as monthly}
-								<div class="mb-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
-									<h6 class="font-semibold text-gray-800 mb-2">{monthly.month}</h6>
-									{#if monthly.details && monthly.details.length > 0}
-										<div class="overflow-x-auto">
-											<table class="w-full text-sm border border-gray-300 rounded">
-												<thead class="bg-gray-100">
-													<tr>
-														<th class="px-3 py-2 text-left border-b">ID Tiket</th>
-														<th class="px-3 py-2 text-left border-b">Nama</th>
-														<th class="px-3 py-2 text-left border-b">Kendaraan</th>
-														<th class="px-3 py-2 text-right border-b">Nominal</th>
-														<th class="px-3 py-2 text-right border-b">Kilometer</th>
-														<th class="px-3 py-2 text-center border-b">Tanggal</th>
-													</tr>
-												</thead>
-												<tbody>
-													{#each monthly.details as detail}
-														<tr class="hover:bg-white">
-															<td class="px-3 py-2 border-b">{detail.id}</td>
-															<td class="px-3 py-2 border-b">{detail.name}</td>
-															<td class="px-3 py-2 border-b">{detail.vehicle || '-'}</td>
-															<td class="px-3 py-2 text-right border-b"
-																>{formatCurrency(detail.nominal)}</td
-															>
-															<td class="px-3 py-2 text-right border-b"
-																>{formatKilometer(detail.kilometer)} km</td
-															>
-															<td class="px-3 py-2 text-center border-b">{detail.date}</td>
-														</tr>
-													{/each}
-												</tbody>
-											</table>
-										</div>
-									{:else}
-										<p class="text-gray-500 text-sm">Tidak ada detail pengajuan</p>
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<p class="text-gray-500 text-center py-4">Tidak ada data pengajuan BBM</p>
-					{/if}
-				</div>
-
-				<!-- Vehicle Summary -->
-				<div class="mb-8">
-					<h4 class="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-300 pb-2">
-						🚗 Rekapitulasi Per Kendaraan
-					</h4>
-					{#if rekapData.vehicleTotal.length > 0}
-						<div class="overflow-x-auto">
-							<table class="w-full border border-gray-300 rounded-lg shadow-sm">
-								<thead class="bg-green-50">
-									<tr>
-										<th class="px-4 py-3 text-left border-b font-semibold text-green-800"
-											>Kendaraan</th
-										>
-										<th class="px-4 py-3 text-center border-b font-semibold text-green-800"
-											>Jumlah Pengajuan</th
-										>
-										<th class="px-4 py-3 text-right border-b font-semibold text-green-800"
-											>Total Nominal</th
-										>
-										<th class="px-4 py-3 text-right border-b font-semibold text-green-800"
-											>Total Kilometer</th
-										>
-									</tr>
-								</thead>
-								<tbody>
-									{#each rekapData.vehicleTotal as vehicle}
-										<tr class="hover:bg-green-25 transition-colors">
-											<td class="px-4 py-3 border-b font-medium">{vehicle.vehicle}</td>
-											<td class="px-4 py-3 text-center border-b">{vehicle.count}</td>
-											<td class="px-4 py-3 text-right border-b font-medium text-green-600"
-												>{formatCurrency(vehicle.totalNominal)}</td
-											>
-											<td class="px-4 py-3 text-right border-b"
-												>{formatKilometer(vehicle.totalKilometer)} km</td
-											>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
-						</div>
-
-						<!-- Detail pengajuan per kendaraan -->
-						<div class="mt-6">
-							<h5 class="text-md font-semibold mb-3 text-gray-700">
-								📋 Detail Pengajuan Per Kendaraan
-							</h5>
-							{#each rekapData.vehicleTotal as vehicle}
-								<div class="mb-4 border border-gray-200 rounded-lg p-4 bg-gray-50">
-									<h6 class="font-semibold text-gray-800 mb-2">{vehicle.vehicle}</h6>
-									{#if vehicle.details && vehicle.details.length > 0}
-										<div class="overflow-x-auto">
-											<table class="w-full text-sm border border-gray-300 rounded">
-												<thead class="bg-gray-100">
-													<tr>
-														<th class="px-3 py-2 text-left border-b">ID Tiket</th>
-														<th class="px-3 py-2 text-left border-b">Nama</th>
-														<th class="px-3 py-2 text-right border-b">Nominal</th>
-														<th class="px-3 py-2 text-right border-b">Kilometer</th>
-														<th class="px-3 py-2 text-center border-b">Tanggal</th>
-													</tr>
-												</thead>
-												<tbody>
-													{#each vehicle.details as detail}
-														<tr class="hover:bg-white">
-															<td class="px-3 py-2 border-b">{detail.id}</td>
-															<td class="px-3 py-2 border-b">{detail.name}</td>
-															<td class="px-3 py-2 text-right border-b"
-																>{formatCurrency(detail.nominal)}</td
-															>
-															<td class="px-3 py-2 text-right border-b"
-																>{formatKilometer(detail.kilometer)} km</td
-															>
-															<td class="px-3 py-2 text-center border-b">{detail.date}</td>
-														</tr>
-													{/each}
-												</tbody>
-											</table>
-										</div>
-									{:else}
-										<p class="text-gray-500 text-sm">Tidak ada detail pengajuan</p>
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{:else}
-						<p class="text-gray-500 text-center py-4">Tidak ada data pengajuan BBM</p>
-					{/if}
-				</div>
-			{/if}
-
-			<div class="flex justify-end mt-6">
-				<button
-					type="button"
-					class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-					on:click={closeRekapModal}
-				>
-					Tutup
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
+<!-- Komponen Rekapitulasi BBM -->
+<RekapitulasiBBM bind:this={rekapitulasiBBM} />
 
 <!-- Komponen Rekapitulasi E-Tol -->
-<RekapitulasiEtol 
-	bind:this={rekapitulasiEtol}
-	bind:showRekapEtolModal
-	isHrdOrGm={isHrdOrGm()}
-/>
+<!-- Komponen Rekapitulasi E-Tol -->
+<RekapitulasiEtol bind:this={rekapitulasiEtol} />
 
 <style>
 	@keyframes fade-in-up {

@@ -5,15 +5,15 @@
 	const dispatch = createEventDispatcher();
 
 	// Props dari parent component
-	export let showRekapEtolModal = false;
+	export let showRekapModal = false;
 
 	// State variables
 	let isLoading = false;
 	let rekapData = {
 		monthlyTotal: [],
-		etolTotal: [],
+		vehicleTotal: [],
 		totalNominal: 0,
-		totalTopUp: 0
+		totalKilometer: 0
 	};
 
 	const DIRECTUS_URL = 'https://directus.eltamaprimaindo.com';
@@ -23,6 +23,12 @@
 	function formatCurrency(value) {
 		if (!value) return '-';
 		return 'Rp ' + parseFloat(value).toLocaleString('id-ID');
+	}
+
+	// Format kilometer function
+	function formatKilometer(value) {
+		if (!value) return '-';
+		return parseInt(value).toLocaleString('id-ID');
 	}
 
 	// Format date function
@@ -45,9 +51,9 @@
 			const userEmail = userData.email;
 			const userDepartment = userData.department;
 
-			console.log('E-Tol - Current user email:', userEmail); // Debug log
-			console.log('E-Tol - Current user department:', userDepartment); // Debug log
-			console.log('E-Tol - Full userData:', userData); // Debug log
+			console.log('Current user email:', userEmail); // Debug log
+			console.log('Current user department:', userDepartment); // Debug log
+			console.log('Full userData:', userData); // Debug log
 
 			// Check by email first (more reliable)
 			const hrdEmails = ['hrd@eltama.com', 'hrdex@eltama.com'];
@@ -69,9 +75,9 @@
 			const isHrd = isHrdByEmail || isHrdByDept;
 			const isGm = isGmByEmail || isGmByDept;
 
-			console.log('E-Tol - Is HRD (by email):', isHrdByEmail, 'Is HRD (by dept):', isHrdByDept); // Debug log
-			console.log('E-Tol - Is GM (by email):', isGmByEmail, 'Is GM (by dept):', isGmByDept); // Debug log
-			console.log('E-Tol - Final - Is HRD:', isHrd, 'Is GM:', isGm); // Debug log
+			console.log('Is HRD (by email):', isHrdByEmail, 'Is HRD (by dept):', isHrdByDept); // Debug log
+			console.log('Is GM (by email):', isGmByEmail, 'Is GM (by dept):', isGmByDept); // Debug log
+			console.log('Final - Is HRD:', isHrd, 'Is GM:', isGm); // Debug log
 
 			return isHrd || isGm;
 		}
@@ -79,24 +85,24 @@
 	}
 
 	// Function to open rekap modal
-	export async function openRekapEtolModal() {
+	export async function openRekapModal() {
 		if (!isHrdOrGm()) {
 			alert('Fitur ini hanya dapat diakses oleh HRD dan General Manager.');
 			return;
 		}
 
 		isLoading = true;
-		showRekapEtolModal = true;
+		showRekapModal = true;
 
 		try {
-			// Fetch all E-Tol tickets
+			// Fetch all BBM tickets
 			const response = await axios.get(`${DIRECTUS_URL}/items/TicketForm`, {
 				headers: {
 					Authorization: `Bearer ${DIRECTUS_TOKEN}`
 				},
 				params: {
 					filter: {
-						category: { _eq: 'Pengajuan E-Tol' }
+						category: { _eq: 'Pengajuan BBM' }
 					},
 					limit: -1, // Get all records
 					sort: ['-date_created']
@@ -104,26 +110,26 @@
 			});
 
 			if (response.data && response.data.data) {
-				const etolTickets = response.data.data;
-				console.log('E-Tol tickets loaded:', etolTickets);
-				calculateRekapData(etolTickets);
+				const bbmTickets = response.data.data;
+				console.log('BBM tickets loaded:', bbmTickets);
+				calculateRekapData(bbmTickets);
 			}
 		} catch (error) {
-			console.error('Error fetching E-Tol data for rekap:', error);
-			alert('Gagal mengambil data untuk rekapitulasi E-Tol');
+			console.error('Error fetching BBM data for rekap:', error);
+			alert('Gagal mengambil data untuk rekapitulasi');
 		} finally {
 			isLoading = false;
 		}
 	}
 
-	function calculateRekapData(etolTickets) {
+	function calculateRekapData(bbmTickets) {
 		// Calculate monthly totals
 		const monthlyData = {};
-		const etolData = {};
+		const vehicleData = {};
 		let totalNominal = 0;
-		let totalTopUp = 0;
+		let totalKilometer = 0;
 
-		etolTickets.forEach((ticket) => {
+		bbmTickets.forEach((ticket) => {
 			const date = new Date(ticket.date_created || ticket.date);
 			const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 			const monthName = date.toLocaleDateString('id-ID', { year: 'numeric', month: 'long' });
@@ -135,62 +141,67 @@
 					monthName: monthName,
 					count: 0,
 					totalAmount: 0,
+					totalKilometer: 0,
 					tickets: []
 				};
 			}
 			monthlyData[monthKey].count++;
 
-			const nominal = parseFloat(ticket.etol_submission_amount) || 0;
+			const nominal = parseFloat(ticket.submission_amount) || 0;
+			const kilometer = parseFloat(ticket.initial_kilometer) || 0;
 			monthlyData[monthKey].totalAmount += nominal;
+			monthlyData[monthKey].totalKilometer += kilometer;
 			monthlyData[monthKey].tickets.push(ticket);
 			totalNominal += nominal;
-			totalTopUp += nominal;
+			totalKilometer += kilometer;
 
-			// E-Tol totals
-			const etolNumber = ticket.no_etol || 'Tidak Diketahui';
-			if (!etolData[etolNumber]) {
-				etolData[etolNumber] = {
-					etol: etolNumber,
+			// Vehicle totals
+			const vehicleInfo = ticket.vehicle_type || 'Tidak Diketahui';
+			if (!vehicleData[vehicleInfo]) {
+				vehicleData[vehicleInfo] = {
+					vehicle: vehicleInfo,
 					count: 0,
-					totalAmount: 0
+					totalAmount: 0,
+					totalKilometer: 0
 				};
 			}
-			etolData[etolNumber].count++;
-			etolData[etolNumber].totalAmount += nominal;
+			vehicleData[vehicleInfo].count++;
+			vehicleData[vehicleInfo].totalAmount += nominal;
+			vehicleData[vehicleInfo].totalKilometer += kilometer;
 		});
 
 		// Convert to arrays and sort
 		const monthlyTotal = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
-		const etolTotal = Object.values(etolData).sort((a, b) => b.count - a.count);
+		const vehicleTotal = Object.values(vehicleData).sort((a, b) => b.count - a.count);
 
 		rekapData = {
 			monthlyTotal,
-			etolTotal,
+			vehicleTotal,
 			totalNominal,
-			totalTopUp
+			totalKilometer
 		};
 	}
 
-	function closeRekapEtolModal() {
-		showRekapEtolModal = false;
+	function closeRekapModal() {
+		showRekapModal = false;
 		rekapData = {
 			monthlyTotal: [],
-			etolTotal: [],
+			vehicleTotal: [],
 			totalNominal: 0,
-			totalTopUp: 0
+			totalKilometer: 0
 		};
 		dispatch('close');
 	}
 </script>
 
-<!-- Modal Rekapitulasi E-Tol (hanya untuk HRD dan General Manager) -->
-{#if showRekapEtolModal}
+<!-- Modal Rekapitulasi BBM (hanya untuk HRD dan General Manager) -->
+{#if showRekapModal}
 	<div
 		class="fixed inset-0 flex items-center justify-center z-50"
-		on:click={closeRekapEtolModal}
+		on:click={closeRekapModal}
 		role="button"
 		tabindex="0"
-		on:keydown={(e) => e.key === 'Escape' && closeRekapEtolModal()}
+		on:keydown={(e) => e.key === 'Escape' && closeRekapModal()}
 	>
 		<div
 			class="bg-white rounded-lg p-6 max-w-8xl w-full mx-4 shadow-2xl max-h-[70vh] overflow-y-auto"
@@ -198,10 +209,10 @@
 			on:keydown={(e) => e.key === 'Enter' && e.stopPropagation()}
 			role="dialog"
 			tabindex="-1"
-			aria-labelledby="rekap-etol-title"
+			aria-labelledby="rekap-title"
 		>
-			<h3 id="rekap-etol-title" class="text-2xl font-bold mb-6 text-gray-800 text-center">
-				🎫 Rekapitulasi Pengajuan E-Tol
+			<h3 id="rekap-title" class="text-2xl font-bold mb-6 text-gray-800 text-center">
+				📊 Rekapitulasi Pengajuan BBM
 			</h3>
 
 			{#if isLoading}
@@ -217,9 +228,9 @@
 						<p class="text-2xl font-bold text-blue-600">{formatCurrency(rekapData.totalNominal)}</p>
 					</div>
 					<div class="bg-green-50 p-4 rounded-lg border border-green-200">
-						<h4 class="font-semibold text-green-800 mb-2">🎫 Total Top Up E-Tol</h4>
+						<h4 class="font-semibold text-green-800 mb-2">🛣️ Total Kilometer</h4>
 						<p class="text-2xl font-bold text-green-600">
-							{formatCurrency(rekapData.totalTopUp)}
+							{formatKilometer(rekapData.totalKilometer)} km
 						</p>
 					</div>
 				</div>
@@ -237,6 +248,7 @@
 										<th class="border border-gray-300 px-4 py-2 text-left">Bulan</th>
 										<th class="border border-gray-300 px-4 py-2 text-center">Jumlah Pengajuan</th>
 										<th class="border border-gray-300 px-4 py-2 text-right">Total Nominal</th>
+										<th class="border border-gray-300 px-4 py-2 text-right">Total Kilometer</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -251,6 +263,9 @@
 											<td class="border border-gray-300 px-4 py-2 text-right font-mono">
 												{formatCurrency(month.totalAmount)}
 											</td>
+											<td class="border border-gray-300 px-4 py-2 text-right font-mono">
+												{formatKilometer(month.totalKilometer)} km
+											</td>
 										</tr>
 									{/each}
 								</tbody>
@@ -262,6 +277,9 @@
 										</td>
 										<td class="border border-gray-300 px-4 py-2 text-right font-mono">
 											{formatCurrency(rekapData.totalNominal)}
+										</td>
+										<td class="border border-gray-300 px-4 py-2 text-right font-mono">
+											{formatKilometer(rekapData.totalKilometer)} km
 										</td>
 									</tr>
 								</tfoot>
@@ -287,9 +305,10 @@
 													<tr class="bg-gray-100">
 														<th class="border border-gray-300 px-2 py-1 text-left">Tanggal</th>
 														<th class="border border-gray-300 px-2 py-1 text-left">Nama</th>
-														<th class="border border-gray-300 px-2 py-1 text-left">No E-Tol</th>
+														<th class="border border-gray-300 px-2 py-1 text-left">Kendaraan</th>
 														<th class="border border-gray-300 px-2 py-1 text-left">Tujuan</th>
 														<th class="border border-gray-300 px-2 py-1 text-right">Nominal</th>
+														<th class="border border-gray-300 px-2 py-1 text-right">Kilometer</th>
 														<th class="border border-gray-300 px-2 py-1 text-center">Status</th>
 													</tr>
 												</thead>
@@ -303,13 +322,16 @@
 																{ticket.name}
 															</td>
 															<td class="border border-gray-300 px-2 py-1">
-																{ticket.no_etol || '-'}
+																{ticket.vehicle_type || '-'}
 															</td>
 															<td class="border border-gray-300 px-2 py-1">
-																{ticket.etol_destination || ticket.destination || '-'}
+																{ticket.destination || '-'}
 															</td>
 															<td class="border border-gray-300 px-2 py-1 text-right font-mono">
-																{formatCurrency(ticket.etol_submission_amount)}
+																{formatCurrency(ticket.submission_amount)}
+															</td>
+															<td class="border border-gray-300 px-2 py-1 text-right font-mono">
+																{formatKilometer(ticket.initial_kilometer)} km
 															</td>
 															<td class="border border-gray-300 px-2 py-1 text-center">
 																<span
@@ -336,36 +358,40 @@
 							{/each}
 						</div>
 					{:else}
-						<p class="text-gray-500 text-center py-4">Tidak ada data pengajuan E-Tol</p>
+						<p class="text-gray-500 text-center py-4">Tidak ada data pengajuan BBM</p>
 					{/if}
 				</div>
 
-				<!-- E-Tol Summary -->
+				<!-- Vehicle Summary -->
 				<div class="mb-8">
 					<h4 class="text-lg font-semibold mb-4 text-gray-800 border-b border-gray-300 pb-2">
-						🎫 Rekapitulasi Per No E-Tol
+						🚗 Rekapitulasi Per Kendaraan
 					</h4>
-					{#if rekapData.etolTotal.length > 0}
+					{#if rekapData.vehicleTotal.length > 0}
 						<div class="overflow-x-auto">
 							<table class="w-full border-collapse border border-gray-300">
 								<thead>
 									<tr class="bg-gray-100">
-										<th class="border border-gray-300 px-4 py-2 text-left">No E-Tol</th>
+										<th class="border border-gray-300 px-4 py-2 text-left">Kendaraan</th>
 										<th class="border border-gray-300 px-4 py-2 text-center">Jumlah Pengajuan</th>
 										<th class="border border-gray-300 px-4 py-2 text-right">Total Nominal</th>
+										<th class="border border-gray-300 px-4 py-2 text-right">Total Kilometer</th>
 									</tr>
 								</thead>
 								<tbody>
-									{#each rekapData.etolTotal as etol}
+									{#each rekapData.vehicleTotal as vehicle}
 										<tr class="hover:bg-gray-50">
 											<td class="border border-gray-300 px-4 py-2 font-medium">
-												{etol.etol}
+												{vehicle.vehicle}
 											</td>
 											<td class="border border-gray-300 px-4 py-2 text-center">
-												{etol.count} kali
+												{vehicle.count} kali
 											</td>
 											<td class="border border-gray-300 px-4 py-2 text-right font-mono">
-												{formatCurrency(etol.totalAmount)}
+												{formatCurrency(vehicle.totalAmount)}
+											</td>
+											<td class="border border-gray-300 px-4 py-2 text-right font-mono">
+												{formatKilometer(vehicle.totalKilometer)} km
 											</td>
 										</tr>
 									{/each}
@@ -373,7 +399,7 @@
 							</table>
 						</div>
 					{:else}
-						<p class="text-gray-500 text-center py-4">Tidak ada data E-Tol</p>
+						<p class="text-gray-500 text-center py-4">Tidak ada data kendaraan</p>
 					{/if}
 				</div>
 			{/if}
@@ -381,8 +407,8 @@
 			<div class="flex justify-end mt-6">
 				<button
 					type="button"
-					class="px-4 py-2 bg-gray-500 text-gray-200 rounded-lg hover:bg-gray-400 transition"
-					on:click={closeRekapEtolModal}
+					class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
+					on:click={closeRekapModal}
 				>
 					Tutup
 				</button>
