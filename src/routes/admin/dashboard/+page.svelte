@@ -6,6 +6,7 @@
 	import TicketingForm from '$lib/component/TicketingForm.svelte';
 	import QuestionManager from '$lib/component/QuestionManager.svelte';
 	import VehicleManager from '$lib/component/VehicleManager.svelte';
+	import ETolManager from '$lib/component/ETolManager.svelte';
 	import { fetchEmployees } from '$lib/services/employee.js';
 	import { onMount, onDestroy } from 'svelte';
 	import axios from 'axios';
@@ -32,6 +33,7 @@
 	let showTicketModal = false;
 	let showQuestionModal = false;
 	let showVehicleModal = false;
+	let showETolModal = false;
 	let ticketUpdates = [];
 
 	// Filter state for General Manager
@@ -88,8 +90,11 @@
 					estimated_return_time: t.estimated_return_time,
 					vehicle_type: t.vehicle_type,
 					initial_fuel: t.initial_fuel,
+					initial_balance: t.initial_balance,
+					no_etol: t.no_etol,
 					initial_kilometer: t.initial_kilometer,
 					submission_amount: t.submission_amount,
+					etol_submission_amount: t.etol_submission_amount,
 					destination: t.destination,
 					date_used: t.date_used || '', // Tambahkan date_used jika ada
 				}));
@@ -235,6 +240,15 @@
 	// Tutup modal vehicle manager
 	function closeVehicleModal() {
 		showVehicleModal = false;
+	}
+
+	// Buka modal E-Tol manager
+	function openETolModal() {
+		showETolModal = true;
+	}
+	// Tutup modal E-Tol manager
+	function closeETolModal() {
+		showETolModal = false;
 	}
 
 	// Modal state for survey detail view
@@ -686,6 +700,15 @@
 				>
 					<span class="inline md:hidden">Kelola Armada</span>
 					<span class="hidden md:inline">Kelola Kendaraan</span>
+				</button>
+				
+				<!-- Tombol Kelola E-Tol (hanya untuk admin HRD) -->
+				<button
+					on:click={openETolModal}
+					class="bg-red-700 hover:bg-red-700 text-white px-6 py-3 rounded-xl text-center shadow-lg font-semibold transition transform hover:scale-105 animate-fade-in-up"
+				>
+					<span class="inline md:hidden">Kelola E-Tol</span>
+					<span class="hidden md:inline">Kelola E-Tol</span>
 				</button>
 			{/if}
 		</div>
@@ -1307,6 +1330,21 @@
 				on:click={closeVehicleModal}>&times;</button
 			>
 			<VehicleManager onClose={closeVehicleModal} />
+		</div>
+	</div>
+{/if}
+
+<!-- Modal untuk E-Tol manager (hanya untuk admin HRD) -->
+{#if showETolModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in"
+	>
+		<div class="bg-white rounded-lg shadow-xl p-0 max-w-4xl w-full relative animate-fade-in-up">
+			<button
+				class="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold z-10"
+				on:click={closeETolModal}>&times;</button
+			>
+			<ETolManager onClose={closeETolModal} />
 		</div>
 	</div>
 {/if}

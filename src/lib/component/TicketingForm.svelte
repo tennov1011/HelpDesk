@@ -38,11 +38,23 @@
 	let submission_amount = '';
 	let destination = '';
 
+	// E-Tol Submission fields
+	let no_etol = '';
+	let initial_balance = '';
+	let etol_submission_amount = '';
+	let etol_destination = '';
+
 	export let employee = null;
 
 	// Vehicles data from Directus
 	let vehicles = [];
 	let isLoadingVehicles = false;
+
+	// E-Tol data from Directus
+	let etols = [];
+	let isLoadingETols = false;
+	let filteredETols = [];
+	let searchETol = '';
 
 	const departmentOptions = [
 		'IT',
@@ -184,6 +196,53 @@
 		}
 	}
 
+	// Fetch E-Tol data from Directus
+	async function fetchETols() {
+		isLoadingETols = true;
+		try {
+			const res = await axios.get(getDirectusUrl('/items/ETol'), {
+				headers: {
+					Authorization: `Bearer ${DIRECTUS_TOKEN}`
+				}
+			});
+			etols = res.data.data || [];
+			filteredETols = etols;
+			console.log('Loaded E-Tols:', etols);
+		} catch (error) {
+			console.error('Error fetching E-Tols:', error);
+			showNotification('error', 'Gagal memuat data E-Tol: ' + (error.response?.data?.errors?.[0]?.message || error.message));
+		} finally {
+			isLoadingETols = false;
+		}
+	}
+
+	// Filter E-Tol based on search (last 4 digits)
+	function filterETols(searchValue) {
+		if (!searchValue) {
+			filteredETols = etols;
+			return;
+		}
+		
+		filteredETols = etols.filter(etol => {
+			const lastFourDigits = etol.no_etol.replace(/-/g, '').slice(-4);
+			return lastFourDigits.includes(searchValue);
+		});
+	}
+
+	// Handle E-Tol search input
+	function handleETolSearch(event) {
+		const value = event.target.value;
+		searchETol = value;
+		filterETols(value);
+	}
+
+	// Select E-Tol from dropdown
+	function selectETol(etol) {
+		no_etol = etol.no_etol;
+		searchETol = etol.no_etol;
+		filteredETols = [];
+	}
+
 	// Format vehicle option text
 	function formatVehicleOption(vehicle) {
 		return `${vehicle.jenis} ${vehicle.nama} ${vehicle.plat_nomor}`;
@@ -259,6 +318,10 @@
 			destination,
 			app_type,
 			date_used,
+			no_etol,
+			initial_balance,
+			etol_submission_amount,
+			etol_destination,
 			date_created: new Date().toISOString()
 		};
 
@@ -333,6 +396,36 @@
 			delete data.submission_amount;
 		}
 
+		// Handle E-Tol submission validation
+		if (data.category === 'Pengajuan E-Tol') {
+			if (!no_etol) {
+				showNotification('error', 'No E-Tol harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!initial_balance) {
+				showNotification('error', 'Saldo Awal harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!etol_submission_amount) {
+				showNotification('error', 'Nominal Top Up harus diisi');
+				isLoading = false;
+				return;
+			}
+			if (!etol_destination) {
+				showNotification('error', 'Tujuan harus diisi');
+				isLoading = false;
+				return;
+			}
+		} else {
+			// Remove E-Tol submission fields for other categories
+			delete data.no_etol;
+			delete data.initial_balance;
+			delete data.etol_submission_amount;
+			delete data.etol_destination;
+		}
+
 		// Handle vehicle borrowing validation
 		if (data.category === 'Peminjaman Kendaraan') {
 			if (!vehicle_type) {
@@ -352,8 +445,13 @@
 			}
 		}
 
+		// Handle destination field mapping based on category
+		if (data.category === 'Pengajuan E-Tol') {
+			data.destination = etol_destination;
+		}
+
 		// Remove destination field for categories that don't use it
-		if (data.category !== 'Peminjaman Kendaraan' && data.category !== 'Pengajuan BBM') {
+		if (data.category !== 'Peminjaman Kendaraan' && data.category !== 'Pengajuan BBM' && data.category !== 'Pengajuan E-Tol') {
 			delete data.destination;
 		}
 
@@ -386,6 +484,11 @@
 			submission_amount = '';
 			destination = '';
 			contactPhone = '';
+			no_etol = '';
+			initial_balance = '';
+			etol_submission_amount = '';
+			etol_destination = '';
+			searchETol = '';
 			photo_ticket = [];
 			setTimeout(() => {
 				dispatch('submitted');
@@ -425,6 +528,11 @@
 		if (category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM' || category === '') {
 			fetchVehicles();
 		}
+
+		// Fetch E-Tol when component mounts
+		if (category === 'Pengajuan E-Tol' || category === '') {
+			fetchETols();
+		}
 	});
 
 	// Watch category changes to fetch vehicles when needed
@@ -435,13 +543,18 @@
 		fetchVehicles();
 	}
 
-	// Watch category changes to set target_department for vehicle and fuel categories
-	$: if (category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM') {
+	// Watch category changes to fetch E-Tol when needed
+	$: if (category === 'Pengajuan E-Tol' && etols.length === 0) {
+		fetchETols();
+	}
+
+	// Watch category changes to set target_department for vehicle, fuel, and E-Tol categories
+	$: if (category === 'Peminjaman Kendaraan' || category === 'Pengajuan BBM' || category === 'Pengajuan E-Tol') {
 		target_department = 'HRD';
 	}
 
 	// Tambahkan reactive statement di bawah deklarasi variable ticket
-	$: isTicketRequired = category !== 'Peminjaman Kendaraan' && category !== 'Pengajuan BBM';
+	$: isTicketRequired = category !== 'Peminjaman Kendaraan' && category !== 'Pengajuan BBM' && category !== 'Pengajuan E-Tol';
 
 	onDestroy(() => {
 		document.removeEventListener('keydown', handleKeydown);
@@ -511,6 +624,7 @@
 					<option value="Izin Keluar">Izin Keluar</option>
 					<option value="Peminjaman Kendaraan">Peminjaman Kendaraan</option>
 					<option value="Pengajuan BBM">Pengajuan BBM</option>
+					<option value="Pengajuan E-Tol">Pengajuan E-Tol</option>
 					<option value="Lainnya">Lainnya</option>
 				</select>
 			</div>
@@ -818,6 +932,101 @@
 						/>
 					</div>
 				</div>
+			{:else if category === 'Pengajuan E-Tol'}
+				<!-- E-Tol Submission Inputs -->
+				<div class="flex flex-col gap-2 sm:gap-4">
+					<div>
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="etol-number-input"
+						>
+							No E-Tol
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<div class="relative">
+							<input
+								id="etol-number-input"
+								type="text"
+								bind:value={searchETol}
+								on:input={handleETolSearch}
+								on:focus={() => {
+									if (etols.length === 0) fetchETols();
+									if (searchETol) filterETols(searchETol);
+								}}
+								class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+								placeholder="Masukkan 4 angka terakhir E-Tol"
+							/>
+							{#if isLoadingETols}
+								<div class="absolute right-2 top-1/2 transform -translate-y-1/2">
+									<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+								</div>
+							{/if}
+							{#if filteredETols.length > 0 && searchETol}
+								<div class="absolute top-full left-0 right-0 z-10 bg-white border border-gray-300 rounded-b shadow-lg max-h-40 overflow-y-auto">
+									{#each filteredETols as etol}
+										<button
+											type="button"
+											class="w-full px-3 py-2 text-left hover:bg-gray-100 text-sm border-b border-gray-100 last:border-b-0"
+											on:click={() => selectETol(etol)}
+										>
+											<div class="font-medium">{etol.no_etol}</div>
+											<div class="text-xs text-gray-500">{etol.place}</div>
+										</button>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					</div>
+					<div>
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="initial-balance"
+						>
+							Saldo Awal
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							id="initial-balance"
+							type="text"
+							bind:value={initial_balance}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Contoh: Rp 500.000"
+						/>
+					</div>
+					<div>
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="etol-submission-amount"
+						>
+							Nominal Top Up (Rp)
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							id="etol-submission-amount"
+							type="number"
+							min="0"
+							bind:value={etol_submission_amount}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Contoh: 1000000"
+						/>
+					</div>
+					<div>
+						<label
+							class="text-xs sm:text-base font-medium flex items-center gap-0.5"
+							for="etol-destination"
+						>
+							Tujuan
+							<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
+						</label>
+						<input
+							id="etol-destination"
+							type="text"
+							bind:value={etol_destination}
+							class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+							placeholder="Contoh: Jakarta - Surabaya"
+						/>
+					</div>
+				</div>
 			{/if}
 			<div>
 				<label class="text-xs sm:text-base font-medium flex items-center gap-0.5" for="desc-input">
@@ -827,26 +1036,30 @@
 						Keperluan
 					{:else if category === 'Peminjaman Kendaraan'}
 						Keperluan
+					{:else if category === 'Pengajuan E-Tol'}
+						Keperluan
+					{:else if category === 'Pengajuan E-Tol'}
+						Keperluan
 					{:else}
 						Deskripsi
 					{/if}
 					<span class="text-red-500 text-xs" title="Field wajib diisi">*</span>
 				</label>
 				<input
-				   id="desc-input"
-				   type="text"
-				   class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
-				   placeholder={
-					   category === 'Izin Keluar'
-						   ? 'Tuliskan keperluan izin Anda'
-						   : category === 'Pengajuan BBM'
-							   ? 'Tuliskan keperluan pengajuan BBM'
-							   : category === 'Peminjaman Kendaraan'
-								   ? 'Tuliskan keperluan anda'
-								   : 'Tuliskan keperluan anda'
-				   }
-				   bind:value={desc}
-			   />
+					id="desc-input"
+					type="text"
+					class="w-full px-2 py-1 sm:px-4 sm:py-2 border rounded text-xs sm:text-base"
+					placeholder={category === 'Izin Keluar'
+						? 'Tuliskan keperluan izin Anda'
+						: category === 'Pengajuan BBM'
+							? 'Tuliskan keperluan pengajuan BBM'
+							: category === 'Peminjaman Kendaraan'
+								? 'Tuliskan keperluan anda'
+								: category === 'Pengajuan E-Tol'
+								? 'Tuliskan keperluan pengajuan E-Tol'
+								: 'Tuliskan keperluan anda'}
+					bind:value={desc}
+				/>
 			</div>
 			<div>
 				<label
@@ -898,6 +1111,8 @@
 							Detail Keperluan
 						{:else if category === 'Pengajuan BBM'}
 							Detail Pengajuan
+						{:else if category === 'Pengajuan E-Tol'}
+							Detail Pengajuan
 						{:else}
 							Detail Masalah
 						{/if}
@@ -912,7 +1127,9 @@
 							? 'Jelaskan detail keperluan izin Anda'
 							: category === 'Pengajuan BBM'
 								? 'Jelaskan detail pengajuan BBM Anda'
-								: 'Jelaskan detail masalah yang Anda alami'}
+								: category === 'Pengajuan E-Tol'
+									? 'Jelaskan detail pengajuan E-Tol Anda'
+									: 'Jelaskan detail masalah yang Anda alami'}
 					></textarea>
 				</div>
 			{/if}

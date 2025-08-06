@@ -3,6 +3,7 @@
 	import axios from 'axios';
 	import jsPDF from 'jspdf';
 	import { roleDefinitions } from '$lib/services/firebaseConfig.js';
+	import RekapitulasiEtol from './RekapitulasiEtol.svelte';
 	export let tickets = [];
 	export let isAdmin = false; // <-- tambahkan ini
 	export let adminDepartment = ''; // Departmen admin yang login
@@ -76,6 +77,10 @@
 		totalNominal: 0,
 		totalKilometer: 0
 	};
+
+	// Rekapitulasi E-Tol variables
+	let showRekapEtolModal = false;
+	let rekapitulasiEtol;
 
 	// Detail modal variables
 	let showDetailModal = false;
@@ -332,6 +337,23 @@
 		} else if (
 			ticket.category &&
 			typeof ticket.category === 'string' &&
+			ticket.category.toLowerCase() === 'pengajuan e-tol'
+		) {
+			detailFields = [
+				['nama', ticket.name],
+				['divisi', ticket.division],
+				['email', ticket.email],
+				['kategori', ticket.category],
+				['No E-Tol', ticket.no_etol || '-'],
+				['Saldo Awal', ticket.initial_balance || '-'],
+				['Nominal Top Up', ticket.etol_submission_amount ? 'Rp ' + parseFloat(ticket.etol_submission_amount).toLocaleString('id-ID') : '-'],
+				['Tujuan', ticket.etol_destination || ticket.destination || '-'],
+				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
+				['PIC', ticket.pic]
+			];
+		} else if (
+			ticket.category &&
+			typeof ticket.category === 'string' &&
 			ticket.category.toLowerCase() === 'lainnya'
 		) {
 			detailFields = [
@@ -355,6 +377,9 @@
 		selectedTicket = ticket;
 		selectedPic = ticket.pic || '';
 		
+		// Get initial detail fields using the centralized function
+		detailFields = getDetailFields(ticket);
+		
 		// Special handling for categories that need async data
 		if (
 			ticket.category &&
@@ -363,20 +388,6 @@
 		) {
 			// Khusus untuk kategori Peminjaman Kendaraan
 			const vehicleInfo = ticket.vehicle_type || '-';
-
-			// Set default value for previousBorrower
-			detailFields = [
-				['nama pemohon', ticket.name],
-				['divisi', ticket.division],
-				['email', ticket.email],
-				['kategori', ticket.category],
-				['kendaraan', vehicleInfo],
-				['tujuan', ticket.destination],
-				['tanggal Pemakaian Kendaraan', formatDateVehicle(ticket.date_used)],
-				['peminjam sebelumnya', 'Mencari data...'],
-				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
-				['PIC', ticket.pic]
-			];
 
 			// Immediately show the modal with loading state for previousBorrower
 			if (isAdmin) {
@@ -400,21 +411,6 @@
 			// Khusus untuk kategori Pengajuan BBM
 			const vehicleInfo = ticket.vehicle_type || '-';
 
-			detailFields = [
-				['nama', ticket.name],
-				['divisi', ticket.division],
-				['email', ticket.email],
-				['kategori', ticket.category],
-				['kendaraan', vehicleInfo],
-				['Jumlah Awal BBM', ticket.initial_fuel],
-				['Kilometer Awal', ticket.initial_kilometer],
-				['Kilometer Sebelumnya', 'Mencari data...'],
-				['Nominal Pengajuan', ticket.submission_amount],
-				['Tujuan', ticket.destination],
-				['lampiran', ticket.photo_ticket ? 'Tersedia' : 'Tidak Tersedia'],
-				['PIC', ticket.pic]
-			];
-
 			// Immediately show the modal with loading state for previousKilometer
 			if (isAdmin) {
 				dispatch('openDetail', { ticket, detailFields });
@@ -430,8 +426,8 @@
 			// Return early to prevent the code after the if-else block from executing
 			return;
 		} else {
-			// For all other categories, use the getDetailFields function
-			detailFields = getDetailFields(ticket);
+			// For all other categories, use the getDetailFields function result
+			// detailFields is already set above from getDetailFields(ticket)
 		}
 		
 		if (isAdmin) {
@@ -972,6 +968,13 @@
 			totalNominal: 0,
 			totalKilometer: 0
 		};
+	}
+
+	// Fungsi untuk rekapitulasi E-Tol (khusus role HRD dan General Manager)
+	async function openRekapEtolModal() {
+		if (rekapitulasiEtol) {
+			await rekapitulasiEtol.openRekapEtolModal();
+		}
 	}
 
 	// Helper function to check if user is HRD or General Manager
@@ -1919,11 +1922,19 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 			{#if isHrdOrGm()}
 				<button
 					type="button"
-					class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+					class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium mb-2"
 					on:click={openRekapModal}
 					disabled={isLoading}
 				>
 					📊 Rekapitulasi BBM
+				</button>
+				<button
+					type="button"
+					class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+					on:click={openRekapEtolModal}
+					disabled={isLoading}
+				>
+					🎫 Rekapitulasi E-Tol
 				</button>
 			{/if}
 		</div>
@@ -2051,6 +2062,14 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 						disabled={isLoading}
 					>
 						📊 Rekapitulasi BBM
+					</button>
+					<button
+						type="button"
+						class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+						on:click={openRekapEtolModal}
+						disabled={isLoading}
+					>
+						🎫 Rekapitulasi E-Tol
 					</button>
 				</div>
 			{/if}
@@ -2962,6 +2981,13 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 		</div>
 	</div>
 {/if}
+
+<!-- Komponen Rekapitulasi E-Tol -->
+<RekapitulasiEtol 
+	bind:this={rekapitulasiEtol}
+	bind:showRekapEtolModal
+	isHrdOrGm={isHrdOrGm()}
+/>
 
 <style>
 	@keyframes fade-in-up {
