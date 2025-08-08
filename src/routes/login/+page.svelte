@@ -362,13 +362,6 @@
 								<span class="text-sm sm:text-base">Masuk</span>
 							{/if}
 						</button>
-						<div class="flex justify-center">
-							<a
-								href="/forgot-password"
-								class="mt-4 text-sm sm:text-base text-purple-600 hover:text-purple-700"
-								>Lupa Password?</a
-							>
-						</div>
 					</div>
 				</form>
 			</div>

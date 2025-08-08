@@ -5,6 +5,7 @@
 	import { roleDefinitions } from '$lib/services/firebaseConfig.js';
 	import RekapitulasiEtol from './RekapitulasiEtol.svelte';
 	import RekapitulasiBBM from './RekapitulasiBBM.svelte';
+	import RekapPeminjamanKendaraan from './RekapPeminjamanKendaraan.svelte';
 	export let tickets = [];
 	export let isAdmin = false; // <-- tambahkan ini
 	export let adminDepartment = ''; // Departmen admin yang login
@@ -77,13 +78,16 @@
 	// Rekapitulasi E-Tol variables
 	let rekapitulasiEtol;
 
+	// Rekapitulasi Peminjaman Kendaraan variables
+	let rekapPeminjamanKendaraan;
+
 	// Detail modal variables
 	let showDetailModal = false;
 	let selectedPic = '';
 
 	const DIRECTUS_URL = 'https://directus.eltamaprimaindo.com';
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
-	const rowsPerPage = 6;
+	let rowsPerPage = 10; // Changed from const to let for flexibility
 
 	// Mobile detection and touch handling
 	function checkIfMobile() {
@@ -154,6 +158,11 @@
 
 	function handleCustomDateChange() {
 		currentPage = 1;
+	}
+
+	function handleRowsPerPageChange(e) {
+		rowsPerPage = parseInt(e.target.value);
+		currentPage = 1; // Reset to first page when changing rows per page
 	}
 
 	function isWithinDateRange(ticketDate) {
@@ -877,6 +886,13 @@
 	async function openRekapEtolModal() {
 		if (rekapitulasiEtol) {
 			await rekapitulasiEtol.openRekapEtolModal();
+		}
+	}
+
+	// Fungsi untuk rekapitulasi Peminjaman Kendaraan (khusus role HRD dan General Manager)
+	async function openRekapPeminjamanModal() {
+		if (rekapPeminjamanKendaraan) {
+			await rekapPeminjamanKendaraan.openRekapPeminjamanModal();
 		}
 	}
 
@@ -1821,8 +1837,8 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 				</div>
 			{/if}
 
-			<!-- HRD/GM Features for Mobile -->
-			{#if isHrdOrGm()}
+			<!-- HRD/GM Features for Mobile (only in admin mode) -->
+			{#if isAdmin && isHrdOrGm()}
 				<button
 					type="button"
 					class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium mb-2"
@@ -1833,11 +1849,19 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 				</button>
 				<button
 					type="button"
-					class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+					class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium mb-2"
 					on:click={openRekapEtolModal}
 					disabled={isLoading}
 				>
 					🎫 Rekapitulasi E-Tol
+				</button>
+				<button
+					type="button"
+					class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+					on:click={openRekapPeminjamanModal}
+					disabled={isLoading}
+				>
+					🚗 Rekapitulasi Peminjaman Kendaraan
 				</button>
 			{/if}
 		</div>
@@ -1955,8 +1979,8 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 				</div>
 			{/if}
 
-			<!-- HRD/GM Features -->
-			{#if isHrdOrGm()}
+			<!-- HRD/GM Features (only in admin mode) -->
+			{#if isAdmin && isHrdOrGm()}
 				<div class="flex items-center gap-2 ml-auto">
 					<button
 						type="button"
@@ -1973,6 +1997,14 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 						disabled={isLoading}
 					>
 						🎫 Rekapitulasi E-Tol
+					</button>
+					<button
+						type="button"
+						class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+						on:click={openRekapPeminjamanModal}
+						disabled={isLoading}
+					>
+						🚗 Rekapitulasi Peminjaman Kendaraan
 					</button>
 				</div>
 			{/if}
@@ -2396,26 +2428,46 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 	</div>
 </div>
 
-<div class="flex justify-center items-center gap-2 mt-4">
-	<button
-		class="px-3 py-1 text-blue-700 rounded hover:bg-blue-100 transition disabled:opacity-50 font-bold"
-		on:click={prevPage}
-		disabled={currentPage === 1}
-		style="background: none; border: none;"
-	>
-		Previous
-	</button>
-	<span class="text-gray-700 font-semibold text-sm font-bold">
-		Page {currentPage} of {totalPages}
-	</span>
-	<button
-		class="px-3 py-1 text-blue-700 rounded hover:bg-blue-100 transition disabled:opacity-50 font-bold"
-		on:click={nextPage}
-		disabled={currentPage === totalPages}
-		style="background: none; border: none;"
-	>
-		Next
-	</button>
+<!-- Pagination Controls -->
+<div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4">
+	<!-- Rows per page selector -->
+	<div class="flex items-center gap-2">
+		<label for="rows-per-page" class="text-sm text-gray-700 font-medium">Rows per page:</label>
+		<select
+			id="rows-per-page"
+			class="px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-400 focus:border-blue-400 text-sm"
+			bind:value={rowsPerPage}
+			on:change={handleRowsPerPageChange}
+		>
+			<option value={10}>10</option>
+			<option value={25}>25</option>
+			<option value={50}>50</option>
+			<option value={100}>100</option>
+		</select>
+	</div>
+
+	<!-- Page navigation -->
+	<div class="flex justify-center items-center gap-2">
+		<button
+			class="px-3 py-1 text-blue-700 rounded hover:bg-blue-100 transition disabled:opacity-50 font-bold"
+			on:click={prevPage}
+			disabled={currentPage === 1}
+			style="background: none; border: none;"
+		>
+			Previous
+		</button>
+		<span class="text-gray-700 font-semibold text-sm font-bold">
+			Page {currentPage} of {totalPages}
+		</span>
+		<button
+			class="px-3 py-1 text-blue-700 rounded hover:bg-blue-100 transition disabled:opacity-50 font-bold"
+			on:click={nextPage}
+			disabled={currentPage === totalPages}
+			style="background: none; border: none;"
+		>
+			Next
+		</button>
+	</div>
 </div>
 
 <!-- Mobile swipe instruction -->
@@ -2672,8 +2724,10 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 <RekapitulasiBBM bind:this={rekapitulasiBBM} />
 
 <!-- Komponen Rekapitulasi E-Tol -->
-<!-- Komponen Rekapitulasi E-Tol -->
 <RekapitulasiEtol bind:this={rekapitulasiEtol} />
+
+<!-- Komponen Rekapitulasi Peminjaman Kendaraan -->
+<RekapPeminjamanKendaraan bind:this={rekapPeminjamanKendaraan} />
 
 <style>
 	@keyframes fade-in-up {
