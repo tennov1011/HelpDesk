@@ -87,7 +87,7 @@
 
 	const DIRECTUS_URL = 'https://directus.eltamaprimaindo.com';
 	const DIRECTUS_TOKEN = 'JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz';
-	let rowsPerPage = 10; // Changed from const to let for flexibility
+	let rowsPerPage = 15; // Increased for better user experience
 
 	// Mobile detection and touch handling
 	function checkIfMobile() {
@@ -2447,27 +2447,30 @@ Mohon bantuannya untuk menindaklanjuti tiket ini. Terima kasih!`;
 	</div>
 
 	<!-- Page navigation -->
-	<div class="flex justify-center items-center gap-2">
-		<button
-			class="px-3 py-1 text-blue-700 rounded hover:bg-blue-100 transition disabled:opacity-50 font-bold"
-			on:click={prevPage}
-			disabled={currentPage === 1}
-			style="background: none; border: none;"
-		>
-			Previous
-		</button>
-		<span class="text-gray-700 font-semibold text-sm font-bold">
-			Page {currentPage} of {totalPages}
-		</span>
-		<button
-			class="px-3 py-1 text-blue-700 rounded hover:bg-blue-100 transition disabled:opacity-50 font-bold"
-			on:click={nextPage}
-			disabled={currentPage === totalPages}
-			style="background: none; border: none;"
-		>
-			Next
-		</button>
-	</div>
+	{#if totalPages > 1}
+		<div class="flex justify-center items-center space-x-2 mt-4">
+			<button
+				on:click={prevPage}
+				disabled={currentPage === 1}
+				class="px-3 py-1 bg-blue-500 text-white rounded-md disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors text-sm"
+			>
+				&larr; Sebelumnya
+			</button>
+
+			<!-- Page indicator -->
+			<div class="px-3 py-1 bg-gray-100 rounded-md text-sm text-gray-600">
+				Halaman {currentPage} dari {totalPages}
+			</div>
+
+			<button
+				on:click={nextPage}
+				disabled={currentPage === totalPages}
+				class="px-3 py-1 bg-blue-500 text-white rounded-md disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors text-sm"
+			>
+				Selanjutnya &rarr;
+			</button>
+		</div>
+	{/if}
 </div>
 
 <!-- Mobile swipe instruction -->

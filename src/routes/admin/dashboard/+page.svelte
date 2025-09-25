@@ -59,10 +59,13 @@
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/TicketForm', {
 				headers: {
 					Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz`
+				},
+				params: {
+					limit: 1000, // Limit untuk optimasi performa
+					sort: '-date_created' // Sort langsung dari API
 				}
 			});
 			tickets = res.data.data
-				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((t) => ({
 					id: `TK${t.id}`,
 					rawId: t.id,
@@ -109,10 +112,13 @@
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/FeedbackForm', {
 				headers: {
 					Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz`
+				},
+				params: {
+					limit: 500, // Limit untuk optimasi performa
+					sort: '-date_created' // Sort langsung dari API
 				}
 			});
 			feedbacks = res.data.data
-				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((fb, idx) => ({
 					id: `F${String(fb.id).padStart(3, '0')}`,
 					rawId: fb.id, // Tambahkan rawId untuk referensi
@@ -136,6 +142,10 @@
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/TicketUpdate', {
 				headers: {
 					Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz`
+				},
+				params: {
+					limit: 1000, // Limit untuk optimasi performa
+					sort: '-date' // Sort langsung dari API
 				}
 			});
 			ticketUpdates = res.data.data.map((update) => ({
@@ -159,13 +169,16 @@
 			const res = await axios.get('https://directus.eltamaprimaindo.com/items/Survey', {
 				headers: {
 					Authorization: `Bearer JaXaSE93k24zq7T2-vZyu3lgNOUgP8fz`
+				},
+				params: {
+					limit: 500, // Limit untuk optimasi performa
+					sort: '-date_created' // Sort langsung dari API
 				}
 			});
 
 			console.log('Raw survey data:', res.data.data); // Debug log
 
 			surveys = res.data.data
-				.sort((a, b) => new Date(b.date_created) - new Date(a.date_created))
 				.map((survey) => {
 					let parsedQuestions = [];
 
@@ -1223,17 +1236,22 @@
 						<div
 							class="group relative overflow-hidden rounded-lg border-2 border-dashed border-orange-300 hover:border-orange-400 transition-colors"
 						>
-							<img
-								src="https://directus.eltamaprimaindo.com/assets/{selectedAdminTicket.photo_ticket}"
-								alt="Lampiran tiket"
-								class="w-full h-auto max-h-[300px] object-contain cursor-pointer transition-transform group-hover:scale-105"
+							<button
+								type="button"
+								class="w-full h-full block"
 								on:click={() => {
 									window.open(
 										`https://directus.eltamaprimaindo.com/assets/${selectedAdminTicket.photo_ticket}`,
 										'_blank'
 									);
 								}}
-							/>
+							>
+								<img
+									src="https://directus.eltamaprimaindo.com/assets/{selectedAdminTicket.photo_ticket}"
+									alt="Lampiran tiket"
+									class="w-full h-auto max-h-[300px] object-contain transition-transform group-hover:scale-105"
+								/>
+							</button>
 							<div
 								class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center"
 							>

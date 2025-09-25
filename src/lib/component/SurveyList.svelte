@@ -7,6 +7,8 @@
 	let selectedRatingFilter = 'all'; // Filter berdasarkan rating
 	let searchQuery = '';
 	let isMobile = false;
+	let currentPage = 1;
+	const rowsPerPage = 10; // Items per page for surveys
 
 	const dispatch = createEventDispatcher();
 
@@ -65,6 +67,32 @@
 		return ratingMatch && searchMatch;
 	});
 
+	// Pagination reactive statements
+	$: totalPages = Math.ceil(filteredSurveys.length / rowsPerPage);
+	$: paginatedSurveys = filteredSurveys.slice(
+		(currentPage - 1) * rowsPerPage,
+		currentPage * rowsPerPage
+	);
+
+	// Reset to first page when filters change
+	$: if (selectedRatingFilter || searchQuery) {
+		currentPage = 1;
+	}
+
+	function nextPage() {
+		if (currentPage < totalPages) currentPage += 1;
+	}
+
+	function prevPage() {
+		if (currentPage > 1) currentPage -= 1;
+	}
+
+	function goToPage(page) {
+		if (page >= 1 && page <= totalPages) {
+			currentPage = page;
+		}
+	}
+
 	// Debug reactive statement
 	$: {
 		console.log('Filter changed to:', selectedRatingFilter);
@@ -117,9 +145,16 @@
 			</div>
 		</div>
 		
-		<!-- Results Count -->
-		<div class="text-sm text-gray-600">
-			Menampilkan {filteredSurveys.length} dari {surveys.length} survey
+		<!-- Results Count and Pagination Info -->
+		<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
+			<div class="text-sm text-gray-600">
+				Menampilkan {(currentPage - 1) * rowsPerPage + 1} - {Math.min(currentPage * rowsPerPage, filteredSurveys.length)} dari {filteredSurveys.length} survey
+			</div>
+			{#if totalPages > 1}
+				<div class="text-sm text-gray-600">
+					Halaman {currentPage} dari {totalPages}
+				</div>
+			{/if}
 		</div>
 	</div>
 
@@ -160,7 +195,7 @@
 						</tr>
 					</thead>
 					<tbody class="bg-white divide-y divide-gray-200">
-						{#each filteredSurveys as survey}
+						{#each paginatedSurveys as survey}
 							<tr class="hover:bg-gray-50 transition-colors">
 								<td class="px-6 py-4 whitespace-nowrap">
 									<div>
@@ -212,7 +247,7 @@
 
 		<!-- Mobile Card View -->
 		<div class="md:hidden space-y-4">
-			{#each filteredSurveys as survey}
+			{#each paginatedSurveys as survey}
 				<div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
 					<div class="flex justify-between items-start mb-3">
 						<div class="flex-1">
@@ -264,5 +299,53 @@
 				</div>
 			{/each}
 		</div>
+
+		<!-- Pagination Controls -->
+		{#if totalPages > 1}
+			<div class="flex justify-center items-center space-x-2 mt-6">
+				<button
+					on:click={prevPage}
+					disabled={currentPage === 1}
+					class="px-3 py-1 bg-blue-500 text-white rounded-md disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors text-sm"
+				>
+					&larr; Sebelumnya
+				</button>
+
+				<!-- Page numbers for desktop -->
+				<div class="hidden md:flex items-center space-x-1">
+					{#each Array(totalPages).fill(0) as _, i}
+						{#if totalPages <= 7 || i < 3 || i >= totalPages - 3 || Math.abs(i - (currentPage - 1)) <= 1}
+							<button
+								on:click={() => goToPage(i + 1)}
+								class="px-3 py-1 rounded-md text-sm transition-colors"
+								class:bg-blue-500={currentPage === i + 1}
+								class:text-white={currentPage === i + 1}
+								class:bg-gray-200={currentPage !== i + 1}
+								class:text-gray-700={currentPage !== i + 1}
+								class:hover:bg-blue-400={currentPage === i + 1}
+								class:hover:bg-gray-300={currentPage !== i + 1}
+							>
+								{i + 1}
+							</button>
+						{:else if i === 3 || i === totalPages - 4}
+							<span class="px-2 text-gray-500">...</span>
+						{/if}
+					{/each}
+				</div>
+
+				<!-- Page indicator for mobile -->
+				<div class="md:hidden px-3 py-1 bg-gray-100 rounded-md text-sm text-gray-600">
+					{currentPage} / {totalPages}
+				</div>
+
+				<button
+					on:click={nextPage}
+					disabled={currentPage === totalPages}
+					class="px-3 py-1 bg-blue-500 text-white rounded-md disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors text-sm"
+				>
+					Selanjutnya &rarr;
+				</button>
+			</div>
+		{/if}
 	{/if}
 </div>
